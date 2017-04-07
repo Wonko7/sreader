@@ -74,6 +74,7 @@
 
 
 (defn read [feed result-chan]
+  "Will read each value from the given feed address and write them to the result-chan."
   (let [req   ((node/require "request") feed (cljs/clj->js {:timeout 1000 :pool false}))
         fp    (node/require "feedparser")
         fp    (new fp)]
@@ -87,14 +88,10 @@
                             (dprint "bad status code:" (.-statusCode result) )
                             (throw :bad-status-code)) ;; just burn for now.
                           (let [headers (h/to-clj (.-headers result))
-                                ;encoding (or (:content-encoding headers) nil)
                                 encoding (:content-encoding headers)
                                 charset (:content-type headers)
                                 res (maybe-decompress result encoding)
                                 res (maybe-translate result charset)]
-                            (println :aaaaaaaaaaaaaaaaa encoding)
-                            (dprint :aaaaaaaaaaaaaaaaa charset)
-                            (println :aaaaaaaaaaaaaaaaa headers)
                             (.pipe result fp))))
 
     (.on fp "readable" #(this-as this
@@ -102,12 +99,5 @@
                                           (if post 
                                             (do (>! result-chan post)
                                                 (recur (.read this)))
-                                            (>! result-chan :done))
-                                          )))
-
-    (go-loop [res result-chan]
-             (println :res)
-             (println (h/to-clj (<! res)))
-             (recur res)
-             )
+                                            (>! result-chan :done)))))
     ))

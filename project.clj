@@ -15,12 +15,34 @@
   :plugins [[lein-figwheel "0.5.8"]
             [lein-cljsbuild "1.1.4" :exclusions [[org.clojure/clojure]]]]
 
-  :source-paths ["src"]
+  :source-paths ["src" "src_client"]
 
   ;:clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 
   :cljsbuild {:builds
-              [{:id "dev"
+              [{:id "client"
+                :source-paths ["src_client"]
+
+                ;; the presence of a :figwheel configuration here
+                ;; will cause figwheel to inject the figwheel client
+                ;; into your build
+                :figwheel {:on-jsload "simple-reader.core/on-js-reload"
+                           ;; :open-urls will pop open your application
+                           ;; in the default browser once Figwheel has
+                           ;; started and complied your application.
+                           ;; Comment this out once it no longer serves you.
+                           ;:open-urls ["http://localhost:3449/index.html"]
+                           }
+
+                :compiler {:main simple-reader.core
+                           :asset-path "js/compiled/out"
+                           :output-to "resources/public/js/compiled/simple_reader.js"
+                           :output-dir "resources/public/js/compiled/out"
+                           :source-map-timestamp true
+                           ;; To console.log CLJS data-structures make sure you enable devtools in Chrome
+                           ;; https://github.com/binaryage/cljs-devtools
+                           :preloads [devtools.preload]}}
+               {:id "server"
                 :source-paths ["src"]
 
                 ;; the presence of a :figwheel configuration here
