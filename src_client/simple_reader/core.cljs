@@ -49,7 +49,7 @@
     [:br]
     [:div.small date]
     [:br]
-    [:div.content desc]]])
+    [:div.content {:dangerouslySetInnerHTML {:__html desc}}]]])
 
 (rum/defc mk-feed < rum/reactive []
   (let [state (rum/react feed-state)
