@@ -14,19 +14,36 @@
 
 ;; define your app data so that it doesn't get over-written on reload
 
-(defonce app-state (atom {:text "Hello world!sssssssssssssss"}))
+(defonce feed-state (atom {:feed-data {:title "ok"}}))
 
-(rum/defc hello-world []
-    [:h1 (:text @app-state)])
+(defn mk-article [title date desc link]
+  [[:br] [:br]
+   [:div.article
+    [:a.title {:href link} title]
+    [:br]
+    [:div.small date]
+    [:br]
+    [:div.content desc]]])
 
-(rum/mount (hello-world)
+(rum/defc mk-feed < rum/reactive []
+  (let [state (rum/react feed-state)
+        ftitle (-> state :feed-data :title)
+        articles (:articles state)]
+    (println "we were called:" ftitle)
+    (println state)
+    [:div.feed [:h1 ftitle]
+     (for [{t :title d :date desc :description l :link} articles]
+       (mk-article t d desc l)
+       )]))
+
+(rum/mount (mk-feed)
            (. js/document (getElementById "app")))
 
 (go (let [json-reader (json/reader :json)
           response (<! (http/get "/f/xkcd/42"))
           response (json/read json-reader (:body response))]
       (println :got response)
-      (swap! app-state assoc-in [:text] response)))
+      (reset! feed-state response)))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
