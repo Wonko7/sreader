@@ -11,6 +11,7 @@
                  [org.clojure/core.async "0.2.391"
                   :exclusions [org.clojure/tools.reader]]
                  [cljs-http "0.1.42"]
+                 [com.cognitect/transit-cljs "0.8.239"]
                  [com.rpl/specter "1.0.0"]
                  [rum "0.10.5"]]
 

@@ -1,6 +1,7 @@
 (ns simple-reader.core
   (:require [rum.core :as rum]
             [cljs-http.client :as http]
+            [cognitect.transit :as json]
             [cljs.core.async :refer [chan <! >!] :as a])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
@@ -21,9 +22,11 @@
 (rum/mount (hello-world)
            (. js/document (getElementById "app")))
 
-(go (let [response (<! (http/get "/f/xkcd/42"))]
-      (println :got (:body response))
-      (swap! app-state assoc-in [:text] (:body response))))
+(go (let [json-reader (json/reader :json)
+          response (<! (http/get "/f/xkcd/42"))
+          response (json/read json-reader (:body response))]
+      (println :got response)
+      (swap! app-state assoc-in [:text] response)))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
