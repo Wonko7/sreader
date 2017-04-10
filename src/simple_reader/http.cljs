@@ -13,7 +13,9 @@
         lol (atom "lol")
         request-feed (fn [req, res]
                        (let [params (merge {:nb 0} (-> req .-params h/to-clj))]
-                         (go (>! request-feed-ch params)
+                         (go (println :received params)
+                             (>! request-feed-ch params)
+                             (println :requested params)
                              (.send res (h/to-js (<! article-ans))))))]
 
     (.use app "/" (.static express "resources/public/"))

@@ -22,15 +22,19 @@
   "read articles one by one and render the html"
   (let [hum-date (nodejs/require "human-date")
         json-writer (json/writer :json)
-        rendered (go-loop [a-rendered [:div.feed]]
-                          (let [article (h/to-clj (<! articles))]
-                            (if (= article :done)
-                              (do (println ::done (vec a-rendered))
-                                  (json/write json-writer (vec a-rendered)))
-                              (recur (concat a-rendered (mk-article (:title article) (.prettyPrint hum-date (:date article)) (:description article) (:link article))))
-                              )))
-        tmp-feed {:feed-data {:title "feeeeed"} :articles [{:title "t1" :link "https://l1.com" :description "desc1" :date "d1"}
-                                                           {:title "t2" :link "https://l2.com" :description "desc2" :date "d2"}] }
-        rendered-hc (json/write json-writer tmp-feed)
+        ;; rendered (go-loop [a-rendered [:div.feed]]
+        ;;                   (let [article (h/to-clj (<! articles))]
+        ;;                     (if (= article :done)
+        ;;                       (do (println ::done (vec a-rendered))
+        ;;                           (json/write json-writer (vec a-rendered)))
+        ;;                       (recur (concat a-rendered (mk-article (:title article) (.prettyPrint hum-date (:date article)) (:description article) (:link article))))
+        ;;                       )))
+        tmp-feed (go (if (= (:feed (<! articles)) "xkcd")
+                       {:feed-data {:title "xkcd feeeeed"} :articles [{:title "xk 1" :link "https://l1.com" :description "desc1" :date "d1"}
+                                                                      {:title "xk 2" :link "https://l2.com" :description "desc2" :date "d2"}] }
+                       {:feed-data {:title "/. feeeeed"} :articles [{:title "/.1" :link "https://l1.com" :description "desc1" :date "d1"}
+                                                                    {:title "/.2" :link "https://l2.com" :description "desc2" :date "d2"}] }))
+        rendered-hc (go (json/write json-writer (<! tmp-feed)))
         ]
-    (go rendered-hc)))
+    (println :rendering)
+    rendered-hc))

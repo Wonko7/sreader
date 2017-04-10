@@ -24,13 +24,16 @@
     (http/init article-req article-ans)
     (go-loop [{feed :feed nb :nb :as fixme} (<! article-req)]
              (println :getting fixme)
+             (go (>! articles fixme))
+             (println :wrote-art)
              ;was : 
              ;(fr/read "https://xkcd.com/atom.xml" articles)
              ;(>! article-ans (<! (html/render-articles articles)))
              (let [res (<! (html/render-articles articles))]
                (println :sending res)
-               (>! article-ans res))
-
+               (>! article-ans res)
+               (println :sent res))
+             (recur (<! article-req))
              )
     ;(fr/read "https://xkcd.com/atom.xml" articles)
     ;(go (println (<! (html/render-articles articles))))
