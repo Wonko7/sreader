@@ -17,10 +17,17 @@
 
 (defn testing []
   (let [articles (chan)
+        article-req (chan)
+        article-ans (chan)
         hum-date (nodejs/require "human-date")]
-    (http/init)
-    (fr/read "https://xkcd.com/atom.xml" articles)
-    (go (println (<! (html/render-articles articles))))
+    (http/init article-req article-ans)
+    (go-loop [{feed :feed nb :nb :as fixme} (<! article-req)]
+             (println :getting fixme)
+             (fr/read "https://xkcd.com/atom.xml" articles)
+             (>! article-ans (<! (html/render-articles articles)))
+             )
+    ;(fr/read "https://xkcd.com/atom.xml" articles)
+    ;(go (println (<! (html/render-articles articles))))
     ;(go-loop [article articles]
     ;         (println)
     ;           (let [article (h/to-clj (<! article))]
