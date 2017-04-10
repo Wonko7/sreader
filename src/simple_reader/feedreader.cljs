@@ -39,7 +39,7 @@
               iconv (new iconv "utf-8")]
           (println "converted" charset "to utf8")
           (.pipe res iconv))
-        (catch js/Object e (do (println "iconv bug")
+        (catch js/Object e (do (println "iconv bug" e)
                                res))))))
 
 ;; function maybeTranslate (res, charset) {
@@ -73,6 +73,18 @@
 ;; }
 
 
+(defn extract-article [article-in]
+  "read articles one by one and render the html" ;; fixme some map chan magic
+  (let [hum-date (node/require "human-date")
+        article (h/to-clj article-in)]
+    {:title         (:title article)
+       :date          (:date article)
+       :pretty-date   (.prettyPrint hum-date (:date article))
+       :description   (:description article)
+       :link          (:link article)
+       :guid          (:guid article)}))
+
+
 (defn read [feed result-chan]
   "Will read each value from the given feed address and write them to the result-chan."
   (let [req   ((node/require "request") feed (cljs/clj->js {:timeout 1000 :pool false}))
@@ -91,13 +103,14 @@
                                 encoding (:content-encoding headers)
                                 charset (:content-type headers)
                                 res (maybe-decompress result encoding)
-                                res (maybe-translate result charset)]
+                                ;Fixme res (maybe-translate result charset)
+                                ]
                             (.pipe result fp))))
 
     (.on fp "readable" #(this-as this
                                  (go-loop [post (.read this)]
                                           (if post 
-                                            (do (>! result-chan post)
+                                            (do (>! result-chan (extract-article post))
                                                 (recur (.read this)))
                                             (>! result-chan :done)))))
     ))

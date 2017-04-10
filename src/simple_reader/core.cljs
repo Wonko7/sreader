@@ -6,6 +6,7 @@
     [cljs.core.async :refer [chan <! >!] :as a]
     [simple-reader.helpers :as h]
     [simple-reader.render :as html]
+    [simple-reader.feed-loader :as io]
     [simple-reader.http :as http])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
@@ -29,12 +30,25 @@
              ;was : 
              ;(fr/read "https://xkcd.com/atom.xml" articles)
              ;(>! article-ans (<! (html/render-articles articles)))
-             (let [res (<! (html/render-articles articles))]
+             (let [res (<! (html/render-articles-hc articles))]
                (println :sending res)
                (>! article-ans res)
                (println :sent res))
              (recur (<! article-req))
              )
+
+    ;(let [] (println (js/Date "22/11/1963")))
+
+    (let [subs [{:link "https://xkcd.com/atom.xml" :name "xkcd"} {:link "http://rss.slashdot.org/Slashdot/slashdot" :name "SlashDot"}]]
+      (doseq [{link :link name :name} subs]
+             (let [articles (chan)]
+               (println "fetching" name)
+               (fr/read link articles)
+               (go-loop [to-save (<! articles)]
+                        (when (not= :done to-save)
+                          (io/save-article name to-save)
+                          (recur (<! articles)))
+                        ))))
     ;(fr/read "https://xkcd.com/atom.xml" articles)
     ;(go (println (<! (html/render-articles articles))))
     ;(go-loop [article articles]

@@ -20,15 +20,19 @@
 
 (defonce subscriptions-state (atom {:feeds [{:title "xkcd"} {:title "slashdot"}]}))
 
-(rum/defc mk-subscriptions < rum/reactive []
-  (let [subs (:feeds (rum/react subscriptions-state))]
-    (println subs)
-    [:div.feeds
-     (for [{t :title} subs]
-       [:div#subscription {:on-click #(request-feed t)}
-        ; [:br]
-        [:a t]])]
-    )) 
+(rum/defcs mk-subscriptions < rum/reactive
+                             (rum/local true ::visible)
+                             [state]
+  (let [subs (:feeds (rum/react subscriptions-state))
+        visible (::visible state)]
+    (println @visible)
+    (into [:div.feeds {:style (if @visible {:visiblity "visible"} {:visiblity "hidden"}) ;{:flex "0 0 15%"} {:flex "0 100 0%"})
+                       :on-click #(swap! visible not)}] ; xp, does not work.
+	
+          (for [{t :title} subs]
+            [:div.subscription {:on-click #(request-feed t)}
+             [:br]
+             [:a {:href "javascript:void(0)"} t]]))))
 
 (rum/mount (mk-subscriptions)
            (. js/document (getElementById "subscriptions")))

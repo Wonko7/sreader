@@ -18,17 +18,10 @@
     [:div.content desc]]])
 
 
-(defn render-articles [articles]
+(defn render-articles-hc [articles]
   "read articles one by one and render the html"
   (let [hum-date (nodejs/require "human-date")
         json-writer (json/writer :json)
-        ;; rendered (go-loop [a-rendered [:div.feed]]
-        ;;                   (let [article (h/to-clj (<! articles))]
-        ;;                     (if (= article :done)
-        ;;                       (do (println ::done (vec a-rendered))
-        ;;                           (json/write json-writer (vec a-rendered)))
-        ;;                       (recur (concat a-rendered (mk-article (:title article) (.prettyPrint hum-date (:date article)) (:description article) (:link article))))
-        ;;                       )))
         tmp-feed (go (if (= (:feed (<! articles)) "xkcd")
                        {:feed-data {:title "xkcd feeeeed"} :articles [{:title "xk 1" :link "https://l1.com" :description "desc1" :date "d1"}
                                                                       {:title "xk 2" :link "https://l2.com" :description "desc2" :date "d2"}] }
@@ -38,3 +31,4 @@
         ]
     (println :rendering)
     rendered-hc))
+
