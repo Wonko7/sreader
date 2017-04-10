@@ -6,36 +6,26 @@
     [cljs.core.async :refer [chan <! >!] :as a]
     [simple-reader.helpers :as h]
     [simple-reader.render :as html]
+    [cognitect.transit :as json]
     [simple-reader.feed-loader :as io]
     [simple-reader.http :as http])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
 
-;; (enable-console-print!)
 (nodejs/enable-util-print!)
 
-(println "Starting stuff.")
-
 (defn testing []
-  (let [articles (chan)
-        article-req (chan)
+  (let [article-req (chan)
         article-ans (chan)
-        hum-date (nodejs/require "human-date")
         ]
     (http/init article-req article-ans)
     (go-loop [{feed :feed nb :nb :as fixme} (<! article-req)]
              (println :getting fixme)
-             (go (>! articles fixme))
-             (println :wrote-art)
-             ;was : 
-             ;(fr/read "https://xkcd.com/atom.xml" articles)
-             ;(>! article-ans (<! (html/render-articles articles)))
-             (let [res (<! (html/render-articles-hc articles))]
-               (println :sending res)
-               (>! article-ans res)
-               (println :sent res))
-             (recur (<! article-req))
-             )
+             (let [json-writer (json/writer :json)
+                   f           (json/write json-writer {:feed-data {:title feed} :articles (io/read-feed feed)})
+                   ]
+               (>! article-ans f)
+               (recur (<! article-req))))
 
     ;(let [] (println (js/Date "22/11/1963")))
 
@@ -54,7 +44,7 @@
                           (println :godone :on name))
                         ))))
 
-    (io/read-feeds "SlashDot")
+    ;(io/read-feeds "SlashDot")
     ;(io/read-feeds "xkcd")
     ;(fr/read "https://xkcd.com/atom.xml" articles)
     ;(go (println (<! (html/render-articles articles))))

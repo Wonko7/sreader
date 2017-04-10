@@ -18,7 +18,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
-(defonce subscriptions-state (atom {:feeds [{:title "xkcd"} {:title "slashdot"}]}))
+(defonce subscriptions-state (atom {:feeds [{:title "xkcd"} {:title "SlashDot"}]}))
 
 (rum/defcs mk-subscriptions < rum/reactive
                              (rum/local true ::visible)
@@ -56,7 +56,7 @@
         ftitle (-> state :feed-data :title)
         articles (:articles state)]
     [:div.feed [:h1 ftitle]
-     (for [{t :title d :date desc :description l :link} articles]
+     (for [{t :title d :pretty-date desc :description l :link} articles]
        (mk-article t d desc l)
        )]))
 

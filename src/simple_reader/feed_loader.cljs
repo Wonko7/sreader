@@ -42,7 +42,7 @@
         (.writeFile FS art-path art-encoded #(when % (throw %))) ;; I don't see why we'd need  sync here.
         ))))
 
-(defn read-feeds [feed-id]
+(defn read-feed [feed-id]
   (let [json-reader (json/reader :json)
         feed-dir    (.join Path (.homedir OS) (:root config) "feeds" feed-id)
         exists?     (.existsSync FS feed-dir)]
@@ -53,5 +53,4 @@
                           (map #(.readFileSync FS %))
                           (map #(json/read json-reader %)))
             ]
-        (doseq [a articles]
-          (println (:title a) (:link a)))))))
+        articles))))
