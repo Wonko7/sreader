@@ -39,16 +39,23 @@
 
     ;(let [] (println (js/Date "22/11/1963")))
 
-    (let [subs [{:link "https://xkcd.com/atom.xml" :name "xkcd"} {:link "http://rss.slashdot.org/Slashdot/slashdot" :name "SlashDot"}]]
+    (let [subs []
+          subss [{:link "https://xkcd.com/atom.xml" :name "xkcd"}
+                {:link "http://rss.slashdot.org/Slashdot/slashdotMainatom" :name "SlashDot"}]]
       (doseq [{link :link name :name} subs]
              (let [articles (chan)]
                (println "fetching" name)
                (fr/read link articles)
                (go-loop [to-save (<! articles)]
-                        (when (not= :done to-save)
-                          (io/save-article name to-save)
-                          (recur (<! articles)))
+                        (if (not= :done to-save)
+                          (do 
+                            (io/save-article name to-save)
+                            (recur (<! articles)))
+                          (println :godone :on name))
                         ))))
+
+    (io/read-feeds "SlashDot")
+    ;(io/read-feeds "xkcd")
     ;(fr/read "https://xkcd.com/atom.xml" articles)
     ;(go (println (<! (html/render-articles articles))))
     ;(go-loop [article articles]
