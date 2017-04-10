@@ -42,23 +42,35 @@
 
 (defonce feed-state (atom {:feed-data {:title "Loading..."}}))
 
-(defn mk-article [title date desc link]
-  [[:br] [:br]
-   [:div.article
-    [:a.title {:href link} title]
-    [:br]
-    [:div.small date]
-    [:br]
-    [:div.content {:dangerouslySetInnerHTML {:__html desc}}]]])
+(rum/defcs mk-article < (rum/local false ::visible)
+  [state title date desc link]
+  (let [visible (::visible state)]
+    [:div.article {;:on-click #(swap! visible not)
+                   :tab-index -1
+                   :on-focus #(do (reset! visible true)
+                                  (let [f-div (.querySelector js/document "#feed .feed")
+                                        a-div (rum/dom-node state)]
+                                    (set! (.-scrollTop f-div) (.-offsetTop a-div))
+                                    (println (.offsetTop a-div))
+                                    ))
+                   :on-blur #(reset! visible false)
+                   }
+     [:a.title {:href link} title]
+     [:br]
+     [:div.small date]
+     [:div.content {:dangerouslySetInnerHTML {:__html desc}
+                    :style {:display (if @visible "" "none")}}
+      ]]))
 
-(rum/defc mk-feed < rum/reactive []
+(rum/defcs mk-feed < rum/reactive [state]
   (let [state (rum/react feed-state)
         ftitle (-> state :feed-data :title)
         articles (:articles state)]
-    [:div.feed [:h1 ftitle]
-     (for [{t :title d :pretty-date desc :description l :link} articles]
-       (mk-article t d desc l)
-       )]))
+    [:div [:h1 ftitle]
+     [:div.feed
+      (for [{t :title d :pretty-date desc :description l :link rum-key :guid} articles]
+        (rum/with-key (mk-article t d desc l) rum-key)
+        )]]))
 
 (rum/mount (mk-feed)
            (. js/document (getElementById "feed")))
@@ -70,6 +82,8 @@
                              response (json/read json-reader (:body response))]
         (println :got response)
         (reset! feed-state response))))
+
+(request-feed "SlashDot")
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

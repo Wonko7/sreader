@@ -22,7 +22,7 @@
     (go-loop [{feed :feed nb :nb :as fixme} (<! article-req)]
              (println :getting fixme)
              (let [json-writer (json/writer :json)
-                   f           (json/write json-writer {:feed-data {:title feed} :articles (io/read-feed feed)})
+                   f           (json/write json-writer {:feed-data {:title feed} :articles (sort-by :date (io/read-feed feed))})
                    ]
                (>! article-ans f)
                (recur (<! article-req))))
