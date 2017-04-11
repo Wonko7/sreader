@@ -3,7 +3,7 @@
             [cljs-http.client :as http]
             [cognitect.transit :as json]
             [cljs.core.async :refer [chan <! >!] :as a]
-            [com.rpl.specter :as s :refer [setval select transform filterer keypath pred ALL ATOM FIRST]]
+            [com.rpl.specter :as s :refer [setval select-one select transform filterer keypath pred ALL ATOM FIRST]]
             ;; goog
             [goog.events :as events]
             )
@@ -17,7 +17,7 @@
 
 
 ;; FIXME tmp:
-(declare request-feed)
+(declare request-feed change-article-md)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
@@ -103,9 +103,17 @@
                         :else (dec total))
        guid       (:guid (nth articles next-nb))]
 
-    (setval [ATOM (keypath guid) ATOM :read?] true article-metadata)
+    ;(setval [ATOM (keypath guid) ATOM :read?] true article-metadata)
     ;(ask to mark as read)
     (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
+
+(defn toggle-as-read []
+  (let [guid (-> @feed-state :feed-data :selected :guid)
+        feed (-> @feed-state :feed-data :title)
+        read-state (select-one [ATOM (keypath guid) ATOM :read?] article-metadata)]
+    (println :cur-read read-state)
+    (change-article-md feed guid {:read? (not read-state)})
+    ))
 
 (defn init-feed-metadata [feed-state]
 ;;;;  (identity (let [feed-state {:articles [{:a 1} {:a 2 :c 1} {:a 3} {:a 2 :c 3}]}
@@ -117,12 +125,16 @@
   ;;           ;(println (select [:articles ALL :a]  feed-state))
   ;;           ;;))
   ;(setval [:articles ALL :visible] false feed-state)
-  (let [articles (:articles feed-state)
+  (let [feed-state (setval [:feed-data :selected] nil feed-state)
+        feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
+        articles (:articles feed-state)
         md (into {} (map (fn [{id :guid md :metada}]
-                           {id (atom md)})
-                         articles))]
+                           {id (atom (or md {:saved? false :read? false}))})
+                         articles))
+        ]
+    
     (reset! article-metadata md)
-    (setval [:feed-data :selected] nil feed-state)))
+    feed-state))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; keyboard:
@@ -140,6 +152,7 @@
           (condp = character
             "j" (change-article 1)
             "k" (change-article -1)
+            "m" (toggle-as-read)
             :else-nothing
             )
           ))))
@@ -156,12 +169,8 @@
 (defn change-article-md [feed art-id md]
   (go (let [json-writer (json/writer :json)
             json-reader (json/reader :json)
-            response (<! (http/post (str "/md/" feed "/" art-id) {:json-params {:lolll 3}}))
-            response (json/read json-reader (:body response))
-            ]
-        (println :md-resp response))))
-
-(change-article-md "suck" "my" {:json-params {:lol 3}})
+            new-md      (:body (<! (http/post (str "/md/" feed "/" art-id) {:json-params md})))]
+        (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
 
 (request-feed "SlashDot")
 

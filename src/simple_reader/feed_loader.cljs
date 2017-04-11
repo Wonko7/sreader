@@ -58,3 +58,14 @@
       (->> feed-dir
            (.readdirSync FS)
            (map load-art)))))
+
+(defn read-article-md [feed article]
+  (let [md-path (.join Path (.homedir OS) (:root config) "feeds" feed article "metadata")
+        exists? (.existsSync FS md-path)]
+    (if exists?
+      (h/read-json (.readFileSync FS md-path))
+      {})))
+
+(defn write-article-md [feed article md]
+  (let [md-path (.join Path (.homedir OS) (:root config) "feeds" feed article "metadata")]
+    (.writeFileSync FS md-path (h/write-json md))))

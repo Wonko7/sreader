@@ -17,20 +17,32 @@
 (defn testing []
   (let [article-req (chan)
         article-ans (chan)
+        art-md-req  (chan)
+        art-md-ans  (chan)
         ]
-    (http/init article-req article-ans)
+
+    ;; init http
+    (http/init article-req article-ans art-md-req art-md-ans)
+
     ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! article-req)]
              (println :getting fixme)
-             (let [json-writer (json/writer :json) ;; fixme put these in helpers
-                   f           (json/write json-writer {:feed-data {:title feed} :articles (sort-by :date (io/read-feed feed))})
-                   ]
+             (let [f (h/write-json {:feed-data {:title feed} :articles (sort-by :date (io/read-feed feed))})]
                (>! article-ans f)
                (recur (<! article-req))))
 
-    ;(let [] (println (js/Date "22/11/1963")))
+    ;; handle metadata changes:
+    (go-loop [{{feed-id :feed article-id :article} :article-id new-md :metadata} (<! art-md-req)]
+             (let [cur-md  (io/read-article-md feed-id article-id)
+                   md       (merge cur-md new-md)]
+               (println :cur cur-md)
+               (println :new new-md)
+               (println :merge md)
+               (io/write-article-md feed-id article-id md)
+               (>! art-md-ans md)
+               (recur (<! art-md-req))))
 
-    ;; scrape subscriptions
+    ;; scrape subscriptions once.
     (let [subs []
           subss [{:link "https://xkcd.com/atom.xml" :name "xkcd"}
                 {:link "http://rss.slashdot.org/Slashdot/slashdotMainatom" :name "SlashDot"}]]
@@ -45,22 +57,6 @@
                             (recur (<! articles)))
                           (println :godone :on name))
                         ))))
-
-    ;(io/read-feeds "SlashDot")
-    ;(io/read-feeds "xkcd")
-    ;(fr/read "https://xkcd.com/atom.xml" articles)
-    ;(go (println (<! (html/render-articles articles))))
-    ;(go-loop [article articles]
-    ;         (println)
-    ;           (let [article (h/to-clj (<! article))]
-    ;             (when (not= article :done)
-    ;               (println (:title article))
-    ;               (println (:link article))
-    ;               (println (:description article))
-    ;               (println (.prettyPrint hum-date (:date article)))
-    ;               ;(println (:summary article))
-    ;               ;(println (keys article))
-    ;               (recur articles))))
     ))
 
 

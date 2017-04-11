@@ -3,18 +3,20 @@
     [cljs.nodejs :as nodejs]
     [simple-reader.feedreader :as fr]
     [cljs.core.async :refer [chan <! >!] :as a]
-    [simple-reader.helpers :as h])
+    [simple-reader.helpers :as h]
+    [com.rpl.specter :as s :refer [setval select-one select transform filterer keypath pred ALL ATOM FIRST]])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
 
-(defn init [request-feed-ch article-ans]
+(defn init [request-feed-ch request-feed-ans
+            request-article-md-change-ch request-article-md-change-ans]
   (let [express (nodejs/require "express")
         bodyparser (nodejs/require "body-parser")
         app (new express)
-        request-feed (fn [req, res]
+        request-feed (fn [req res]
                        (let [params (merge {:nb 0} (-> req .-params h/to-clj))]
                          (go (>! request-feed-ch params)
-                             (.send res (h/to-js (<! article-ans))))))]
+                             (.send res (h/to-js (<! request-feed-ans))))))]
 
     (.use app (.json bodyparser))
     (.use app (.urlencoded bodyparser (h/to-js {:extended true})))
@@ -22,11 +24,13 @@
     (.get app "/f/:feed/" request-feed)
     (.get app "/f/:feed/:nb" request-feed)
     (.post app "/md/:feed/:article" (fn [req res]
-                                      (let [params (-> req .-params h/to-clj)
-                                            body (-> req .-body h/to-clj)]
-                                       (println :received params)
-                                       (println :body body)
-                                       (.send res (h/to-js (h/write-json {:fuck :me}))))))
+                                      (let [article-id (-> req .-params h/to-clj)
+                                            article-id (transform [:article] js/encodeURIComponent article-id)
+                                            metadata (-> req .-body h/to-clj)]
+                                        (println :req article-id )
+                                        (println :req-md metadata )
+                                        (go (>! request-article-md-change-ch {:article-id article-id :metadata metadata})
+                                            (.send res (h/to-js (<! request-article-md-change-ans))))))) ;; FIXME is h/to-js necessary?
 
     ;app.use('/static', express.static('public'))
 
