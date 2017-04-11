@@ -27,30 +27,35 @@
                     article
                     &
                     [override?]]
-  (let [json-writer (json/writer :json)
-        ;; my stuff:
-        override?   (if (nil? override?) true override?) ;; if false isn't explicitly given, default to true
-        art-id      (js/encodeURIComponent (:guid article))
-        feed-dir    [(.homedir OS) (:root config) "feeds" feed-id]
-        art-path    (.join Path (mk-dir? feed-dir) art-id)
-        exists?     (.existsSync FS art-path)
-        ]
+  (let [write-json-file #(.writeFileSync FS % (json/write (json/writer :json) %2))
+        override?       (if (nil? override?) true override?) ;; if false isn't explicitly given, default to true
+        art-id          (js/encodeURIComponent (:guid article))
+        feed-dir        [(.homedir OS) (:root config) "feeds" feed-id art-id]
+        feed-dir        (mk-dir? feed-dir)
+        art-path        (.join Path feed-dir "entry")
+        md-path         (.join Path feed-dir "metadata")
+        exists?         (.existsSync FS art-path)]
     (if (and exists? (not override?))
       (println :feed feed-id :art (:title article) "already exists")
-      (let [art-encoded (json/write json-writer (merge article-default-metadata article))]
-        (println :feed feed-id :art (:title article) "written")
-        (.writeFile FS art-path art-encoded #(when % (throw %))) ;; I don't see why we'd need  sync here.
-        ))))
+      (do (println :feed feed-id :art (:title article) "written")
+          (write-json-file art-path (dissoc article :metadata))
+          (when-let [md (:metadata article)]
+            (write-json-file md-path md))
+          ))))
 
 (defn read-feed [feed-id]
-  (let [json-reader (json/reader :json)
-        feed-dir    (.join Path (.homedir OS) (:root config) "feeds" feed-id)
-        exists?     (.existsSync FS feed-dir)]
+  (let [read-json-file  #(json/read (json/reader :json) (.readFileSync FS %))
+        feed-dir        (.join Path (.homedir OS) (:root config) "feeds" feed-id)
+        exists?         (.existsSync FS feed-dir)
+        load-art        (fn [art-dir]
+                          (let [entry-path (.join Path feed-dir art-dir "entry")
+                                md-path    (.join Path feed-dir art-dir "metadata")
+                                _ (println :path entry-path)
+                                article    (read-json-file entry-path) ]
+                            (if (.existsSync FS md-path)
+                              (merge article (read-json-file md-path))
+                              article)))]
     (when exists?
-      (let [articles (->> feed-dir ;; transducers fixme
-                          (.readdirSync FS)
-                          (map #(.join Path feed-dir %))
-                          (map #(.readFileSync FS %))
-                          (map #(json/read json-reader %)))
-            ]
-        articles))))
+      (->> feed-dir
+           (.readdirSync FS)
+           (map load-art)))))

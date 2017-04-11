@@ -60,8 +60,6 @@
 ;;                    }
 
 (rum/defcs mk-article < ;(rum/local false ::visible)
-  {:did-render (fn [state visible?]
-                 (println :rendered :vis))}
   [state title date desc link visible?]
   (let [_ 1] ;; for later
     [:div.article

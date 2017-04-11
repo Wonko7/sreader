@@ -19,9 +19,10 @@
         article-ans (chan)
         ]
     (http/init article-req article-ans)
+    ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! article-req)]
              (println :getting fixme)
-             (let [json-writer (json/writer :json)
+             (let [json-writer (json/writer :json) ;; fixme put these in helpers
                    f           (json/write json-writer {:feed-data {:title feed} :articles (sort-by :date (io/read-feed feed))})
                    ]
                (>! article-ans f)
@@ -29,8 +30,9 @@
 
     ;(let [] (println (js/Date "22/11/1963")))
 
+    ;; scrape subscriptions
     (let [subs []
-          subss [{:link "https://xkcd.com/atom.xml" :name "xkcd"}
+          subs [{:link "https://xkcd.com/atom.xml" :name "xkcd"}
                 {:link "http://rss.slashdot.org/Slashdot/slashdotMainatom" :name "SlashDot"}]]
       (doseq [{link :link name :name} subs]
              (let [articles (chan)]
