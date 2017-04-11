@@ -1,0 +1,90 @@
+/* some style */
+
+body {
+	padding: 0;
+	margin: 0;
+}
+#page {
+	display: flex;
+	height: 100%;
+}
+#subscriptions {
+	height: 100%;
+	flex: 0 0 15%;
+}
+#feed {
+	flex: auto;
+}
+.subscription {
+	padding-left: .5em;
+	padding: .3em;
+}
+
+.article.read {
+	font-size: 1.2em;
+
+	border-width: 1px;
+	border-style: solid;
+	border-radius: .5em;
+	border-color: white;
+	background: #DDDDDD;
+
+	padding: 1em;
+	margin-bottom: 1em;
+}
+
+.article {
+	font-size: 1.2em;
+
+	border-width: 1px;
+	border-style: solid;
+	border-radius: 5px;
+	border-color: white;
+
+
+	padding: 1em;
+	margin-bottom: 1em;
+}
+.article .content {
+	width: 75%;
+	text-align: justify;
+	padding-top: 1em;
+}
+.article .small {
+	font-size: 0.75em;
+	color: #888888;
+}
+
+#feed .feed {
+	overflow-y: scroll;
+	height: 100%;
+	width: 80%;
+	padding-right: 5%;
+	position: fixed;
+	/*position: absolute;*/
+}
+
+.article a.title:link,
+.article a.title:visited,
+.article a.title:hover,
+.article a.title:active 
+{
+	color: green;
+	text-decoration: none;
+}
+
+#subscriptions a.title:link .subscription,
+#subscriptions a.title:visited .subscription,
+#subscriptions a.title:hover .subscription,
+#subscriptions a.title:active .subscription 
+{
+	color: green;
+	text-decoration: none;
+}
+
+/*
+a:link
+a:visited
+a:hover
+a:active 
+*/

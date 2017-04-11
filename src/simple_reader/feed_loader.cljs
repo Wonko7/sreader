@@ -52,7 +52,7 @@
                                 md-path    (.join Path feed-dir art-dir "metadata")
                                 article    (read-json-file entry-path) ]
                             (if (.existsSync FS md-path)
-                              (merge article (read-json-file md-path))
+                              (merge article {:metadata (read-json-file md-path)})
                               article)))]
     (when exists?
       (->> feed-dir

@@ -34,9 +34,9 @@
                        :on-click #(swap! visible not)}] ; xp, does not work.
 	
           (for [{t :title} subs]
-            [:div.subscription {:on-click #(request-feed t)}
-             [:br]
-             [:a {:href "javascript:void(0)"} t]]))))
+            [:a {:href "javascript:void(0)"}
+                 [:div.subscription {:on-click #(request-feed t)} t]]
+             ))))
 
 (rum/mount (mk-subscriptions)
            (. js/document (getElementById "subscriptions")))
@@ -66,7 +66,7 @@
    visible?]
   (let [a-md (@article-metadata id)
         {read? :read? saved? :saved?} (rum/react a-md)]
-    [:div.article
+    [(if read? :div.article.read :div.article)
      [:a.title {:href link} title]
      [:br]
      [:div.small date]
@@ -128,11 +128,11 @@
   (let [feed-state (setval [:feed-data :selected] nil feed-state)
         feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
         articles (:articles feed-state)
-        md (into {} (map (fn [{id :guid md :metada}]
+        md (into {} (map (fn [{id :guid md :metadata}]
                            {id (atom (or md {:saved? false :read? false}))})
                          articles))
         ]
-    
+    (println (select [:articles ALL :metadata] feed-state))
     (reset! article-metadata md)
     feed-state))
 
