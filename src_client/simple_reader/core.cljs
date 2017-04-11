@@ -3,7 +3,7 @@
             [cljs-http.client :as http]
             [cognitect.transit :as json]
             [cljs.core.async :refer [chan <! >!] :as a]
-            [com.rpl.specter :as s :refer [setval select transform filterer pred ALL ATOM FIRST]]
+            [com.rpl.specter :as s :refer [setval select transform filterer keypath pred ALL ATOM FIRST]]
             ;; goog
             [goog.events :as events]
             )
@@ -46,7 +46,7 @@
 
 
 (defonce feed-state (atom {:feed-data {:title "Loading..."}}))
-
+(def article-metadata (atom {}))
 
 
 ;; :div.article {;:tab-index -1 ;; needed for focus
@@ -59,58 +59,71 @@
 ;;                    ;:on-blur #(reset! visible false)
 ;;                    }
 
-(rum/defcs mk-article < ;(rum/local false ::visible)
-  [state title date desc link visible?]
-  (let [_ 1] ;; for later
+(rum/defcs mk-article < rum/reactive
+  [state
+   {title :title date :pretty-date desc :description link :link id :guid
+    {read? :read? saved? :saved} :metadata}
+   visible?]
+  (let [a-md (@article-metadata id)
+        {read? :read? saved? :saved?} (rum/react a-md)]
     [:div.article
      [:a.title {:href link} title]
      [:br]
      [:div.small date]
+     [:div.small (if read? "read" "unread")]
      [:div.content {:dangerouslySetInnerHTML {:__html desc}
                     :style {:display (if visible? "" "none")}}
       ]]))
 
 (rum/defcs mk-feed < rum/reactive [state]
-  (let [fstate (rum/react feed-state)
-        ftitle (-> fstate :feed-data :title)
-        articles (:articles fstate)
+  (let [fstate      (rum/react feed-state)
+        ftitle      (-> fstate :feed-data :title)
+        articles    (:articles fstate)
         visible-id  (-> fstate :feed-data :selected :guid)
         visible-nb  (or (-> fstate :feed-data :selected :number) 0)
         articles    (drop visible-nb articles)]
-    [:div.feed {:on-scroll #(println :scroll (.-scrollTop (rum/dom-node state)))}
+    [:div.feed
       (when-not visible-id [:h1 ftitle])
-      (for [{t :title d :pretty-date desc :description l :link rum-key :guid} articles]
-        (rum/with-key (mk-article t d desc l (= rum-key visible-id)) rum-key)
+      (for [a articles
+            :let [rum-key (:guid a)]]
+        (rum/with-key (mk-article a (= rum-key visible-id)) rum-key)
         )]))
 
 (rum/mount (mk-feed)
            (. js/document (getElementById "feed")))
 
 (defn change-article [nb]
-  (let [cur-nb (-> @feed-state :feed-data :selected :number)
-        cur-nb (or cur-nb -1)
-        articles (-> @feed-state :articles)
-        total (count articles)
-        next-nb (+ nb cur-nb)
-        next-nb (cond (< next-nb 0) 0
-                      (< next-nb total) next-nb
-                      :else (dec total))]
-    (setval [ATOM :feed-data :selected] {:number next-nb :guid (:guid (nth articles next-nb))} feed-state)))
+  (let [cur-nb    (-> @feed-state :feed-data :selected :number)
+        cur-nb    (or cur-nb -1)
+        articles  (-> @feed-state :articles)
+        total     (count articles)
+        next-nb   (+ nb cur-nb)
+        next-nb   (cond (< next-nb 0) 0
+                        (< next-nb total) next-nb
+                        :else (dec total))
+       guid       (:guid (nth articles next-nb))]
+
+    (setval [ATOM (keypath guid) ATOM :read?] true article-metadata)
+    ;(ask to mark as read)
+    (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
 
 (defn init-feed-metadata [feed-state]
-  (identity (let [feed-state {:articles [{:a 1} {:a 2 :c 1} {:a 3} {:a 2 :c 3}]}
-                  feed-state2 (atom feed-state)]
-             (println :loooooooooooooooooooooool)
-             ;(println (transform [:articles ALL (pred #(= (:a %) 2)) FIRST] feed-state))
-             ;;(println (setval [ATOM :articles ALL :visible] false feed-state2))
-             ;;(println @feed-state2)
-             ;(println (select [:articles ALL :a]  feed-state))
-             ))
+;;;;  (identity (let [feed-state {:articles [{:a 1} {:a 2 :c 1} {:a 3} {:a 2 :c 3}]}
+  ;;                feed-state2 (atom feed-state)]
+  ;;           (println :loooooooooooooooooooooool)
+  ;;           ;(println (transform [:articles ALL (pred #(= (:a %) 2)) FIRST] feed-state))
+  ;;           ;;(println (setval [ATOM :articles ALL :visible] false feed-state2))
+  ;;           ;;(println @feed-state2)
+  ;;           ;(println (select [:articles ALL :a]  feed-state))
+  ;;           ;;))
   ;(setval [:articles ALL :visible] false feed-state)
-  (setval [:feed-data :selected] nil feed-state)
-  )
+  (let [articles (:articles feed-state)
+        md (into {} (map (fn [{id :guid md :metada}]
+                           {id (atom md)})
+                         articles))]
+    (reset! article-metadata md)
+    (setval [:feed-data :selected] nil feed-state)))
 
-(init-feed-metadata nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; keyboard:
 
@@ -135,11 +148,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
 
 (defn request-feed [title]
-  (println :called :rf title)
   (go (let [json-reader (json/reader :json)
-                             response (<! (http/get (str "/f/" title "/42")))
-                             response (json/read json-reader (:body response))]
+            response (<! (http/get (str "/f/" title "/42")))
+            response (json/read json-reader (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
+
+(defn change-article-md [feed art-id md]
+  (go (let [json-writer (json/writer :json)
+            json-reader (json/reader :json)
+            response (<! (http/post (str "/md/" feed "/" art-id) {:json-params {:lolll 3}}))
+            response (json/read json-reader (:body response))
+            ]
+        (println :md-resp response))))
+
+(change-article-md "suck" "my" {:json-params {:lol 3}})
 
 (request-feed "SlashDot")
 

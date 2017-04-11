@@ -32,7 +32,7 @@
 
     ;; scrape subscriptions
     (let [subs []
-          subs [{:link "https://xkcd.com/atom.xml" :name "xkcd"}
+          subss [{:link "https://xkcd.com/atom.xml" :name "xkcd"}
                 {:link "http://rss.slashdot.org/Slashdot/slashdotMainatom" :name "SlashDot"}]]
       (doseq [{link :link name :name} subs]
              (let [articles (chan)]

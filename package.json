@@ -2,6 +2,7 @@
   "name": "simple-reader",
   "version": "0.0.1",
   "dependencies": {
+    "body-parser": "^1.17.1",
     "express": "^4.15.2",
     "feedparser": "^2.1.0",
     "human-date": "^1.4.0",

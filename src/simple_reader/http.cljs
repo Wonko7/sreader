@@ -9,18 +9,24 @@
 
 (defn init [request-feed-ch article-ans]
   (let [express (nodejs/require "express")
+        bodyparser (nodejs/require "body-parser")
         app (new express)
-        lol (atom "lol")
         request-feed (fn [req, res]
                        (let [params (merge {:nb 0} (-> req .-params h/to-clj))]
-                         (go (println :received params)
-                             (>! request-feed-ch params)
-                             (println :requested params)
+                         (go (>! request-feed-ch params)
                              (.send res (h/to-js (<! article-ans))))))]
 
+    (.use app (.json bodyparser))
+    (.use app (.urlencoded bodyparser (h/to-js {:extended true})))
     (.use app "/" (.static express "resources/public/"))
     (.get app "/f/:feed/" request-feed)
     (.get app "/f/:feed/:nb" request-feed)
+    (.post app "/md/:feed/:article" (fn [req res]
+                                      (let [params (-> req .-params h/to-clj)
+                                            body (-> req .-body h/to-clj)]
+                                       (println :received params)
+                                       (println :body body)
+                                       (.send res (h/to-js (h/write-json {:fuck :me}))))))
 
     ;app.use('/static', express.static('public'))
 

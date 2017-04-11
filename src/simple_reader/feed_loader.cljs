@@ -50,7 +50,6 @@
         load-art        (fn [art-dir]
                           (let [entry-path (.join Path feed-dir art-dir "entry")
                                 md-path    (.join Path feed-dir art-dir "metadata")
-                                _ (println :path entry-path)
                                 article    (read-json-file entry-path) ]
                             (if (.existsSync FS md-path)
                               (merge article (read-json-file md-path))
