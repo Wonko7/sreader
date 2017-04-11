@@ -70,7 +70,7 @@
      [:a.title {:href link} title]
      [:br]
      [:div.small date]
-     [:div.small (if read? "read" "unread")]
+     [:div.small (str (if read? "read" "unread") " / " (if saved? "saved" "unsaved"))]
      [:div.content {:dangerouslySetInnerHTML {:__html desc}
                     :style {:display (if visible? "" "none")}}
       ]]))
@@ -107,12 +107,12 @@
     ;(ask to mark as read)
     (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
 
-(defn toggle-as-read []
+(defn toggle-article-md [key]
   (let [guid (-> @feed-state :feed-data :selected :guid)
         feed (-> @feed-state :feed-data :title)
-        read-state (select-one [ATOM (keypath guid) ATOM :read?] article-metadata)]
+        read-state (select-one [ATOM (keypath guid) ATOM (keypath key)] article-metadata)]
     (println :cur-read read-state)
-    (change-article-md feed guid {:read? (not read-state)})
+    (change-article-md feed guid {key (not read-state)})
     ))
 
 (defn init-feed-metadata [feed-state]
@@ -137,6 +137,22 @@
     feed-state))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
+
+(defn request-feed [title]
+  (go (let [json-reader (json/reader :json)
+            response (<! (http/get (str "/f/" title "/42")))
+            response (json/read json-reader (:body response))]
+        (reset! feed-state (init-feed-metadata response)))))
+
+(defn change-article-md [feed art-id md]
+  (go (let [json-writer (json/writer :json)
+            json-reader (json/reader :json)
+            new-md      (:body (<! (http/post (str "/md/" feed "/" art-id) {:json-params md})))]
+        (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; keyboard:
 
 (defn listen [el type]
@@ -152,26 +168,13 @@
           (condp = character
             "j" (change-article 1)
             "k" (change-article -1)
-            "m" (toggle-as-read)
+            "m" (toggle-article-md :read?)
+            "s" (toggle-article-md :saved?)
             :else-nothing
             )
           ))))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
-
-(defn request-feed [title]
-  (go (let [json-reader (json/reader :json)
-            response (<! (http/get (str "/f/" title "/42")))
-            response (json/read json-reader (:body response))]
-        (reset! feed-state (init-feed-metadata response)))))
-
-(defn change-article-md [feed art-id md]
-  (go (let [json-writer (json/writer :json)
-            json-reader (json/reader :json)
-            new-md      (:body (<! (http/post (str "/md/" feed "/" art-id) {:json-params md})))]
-        (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
-
+;; init a page, fixme:
 (request-feed "SlashDot")
 
 (defn on-js-reload []
