@@ -9,7 +9,8 @@
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
 
 (defn init [request-feed-ch request-feed-ans
-            request-article-md-change-ch request-article-md-change-ans]
+            request-article-md-change-ch request-article-md-change-ans
+            request-subs-ch request-subs-ans]
   (let [express (nodejs/require "express")
         bodyparser (nodejs/require "body-parser")
         app (new express)
@@ -23,6 +24,9 @@
     (.use app "/" (.static express "resources/public/"))
     (.get app "/f/:feed/" request-feed)
     (.get app "/f/:feed/:nb" request-feed)
+    (.get app "/subs/" (fn [req res]
+                         (go (>! request-subs-ch :req)
+                             (.send res (h/to-js (<! request-subs-ans))))))
     (.post app "/md/:feed/:article" (fn [req res]
                                       (let [article-id (-> req .-params h/to-clj)
                                             article-id (transform [:article] js/encodeURIComponent article-id)

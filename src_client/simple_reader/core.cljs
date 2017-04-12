@@ -22,18 +22,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
-(defonce subscriptions-state (atom {:feeds [{:title "xkcd"} {:title "Slashdot"}]}))
+(defonce subscriptions-state (atom {:feeds [{:name "xkcd"} {:title "Slashdot"}]}))
 
 (rum/defcs mk-subscriptions < rum/reactive
-                             (rum/local true ::visible)
-                             [state]
-  (let [subs (:feeds (rum/react subscriptions-state))
-        visible (::visible state)]
-    (println @visible)
-    (into [:div.feeds {:style (if @visible {:visiblity "visible"} {:visiblity "hidden"}) ;{:flex "0 0 15%"} {:flex "0 100 0%"})
-                       :on-click #(swap! visible not)}] ; xp, does not work.
-	
-          (for [{t :title} subs]
+  [state]
+  (let [subs (rum/react subscriptions-state)
+        ]
+    (into [:div.feeds ] ; xp, does not work.
+          (for [{t :name} subs]
             [:a {:href "javascript:void(0)"}
                  [:div.subscription {:on-click #(request-feed t)} t]]
              ))))
@@ -105,7 +101,6 @@
                         (< next-nb total) next-nb
                         :else (dec total))
        guid       (:guid (nth articles next-nb))]
-
     ;(setval [ATOM (keypath guid) ATOM :read?] true article-metadata)
     ;(ask to mark as read)
     (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
@@ -119,15 +114,6 @@
     ))
 
 (defn init-feed-metadata [feed-state]
-;;;;  (identity (let [feed-state {:articles [{:a 1} {:a 2 :c 1} {:a 3} {:a 2 :c 3}]}
-  ;;                feed-state2 (atom feed-state)]
-  ;;           (println :loooooooooooooooooooooool)
-  ;;           ;(println (transform [:articles ALL (pred #(= (:a %) 2)) FIRST] feed-state))
-  ;;           ;;(println (setval [ATOM :articles ALL :visible] false feed-state2))
-  ;;           ;;(println @feed-state2)
-  ;;           ;(println (select [:articles ALL :a]  feed-state))
-  ;;           ;;))
-  ;(setval [:articles ALL :visible] false feed-state)
   (let [feed-state (setval [:feed-data :selected] nil feed-state)
         feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
         articles (:articles feed-state)
@@ -141,6 +127,12 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
+
+(defn request-subscriptions [title]
+  (go (let [json-reader (json/reader :json)
+            response (<! (http/get "/subs/"))
+            response (json/read json-reader (:body response))]
+        (reset! subscriptions-state response))))
 
 (defn request-feed [title]
   (go (let [json-reader (json/reader :json)
@@ -178,6 +170,7 @@
           ))))
 
 ;; init a page, fixme:
+(request-subscriptions)
 (request-feed "Slashdot")
 
 (defn on-js-reload []
