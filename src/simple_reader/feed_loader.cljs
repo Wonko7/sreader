@@ -100,7 +100,6 @@
 
 
 (defn read-tag-md [tag]
-  (println :tag tag)
   (let [md-path (mk-root-path "tags" tag "metadata")
         exists? (.existsSync FS md-path)]
     (if exists?

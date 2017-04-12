@@ -78,22 +78,22 @@
     ;; scrape subscriptions once.
     (let [subs [ ]
           one-by-one (chan)]
-      (go (>! one-by-one :go))
-      (comment (go (doseq [[k {link :url name :name dir :dir}] feed-md
+      ;(go (>! one-by-one :go))
+      (go (doseq [[k {link :url name :name dir :dir}] feed-md
                    ;:when (some #(= dir %) subs)
                    ]
             (let [articles (chan)]
-              (<! one-by-one)
+              ;(<! one-by-one)
               (println "fetching" name)
               (fr/read link articles)
               (go-loop [to-save (<! articles)]
                        (cond
-                         (= :done to-save)  (>! one-by-one :go) ;:done
-                         (= :error to-save) (>! one-by-one :go) ;:error (comment (io/mv-bad-feed (get-fd-dir name)))
+                         (= :done to-save)  :done ;(>! one-by-one :go)
+                         (= :error to-save) :error ;(>! one-by-one :go) ;:error (comment (io/mv-bad-feed (get-fd-dir name)))
                          :else (do (io/save-article (get-fd-dir name) to-save)
                                    (recur (<! articles))))
 
-                       ))))))
+                       )))))
     ))
 
 
