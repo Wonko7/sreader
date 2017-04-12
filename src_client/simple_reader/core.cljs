@@ -66,11 +66,14 @@
    visible?]
   (let [a-md (@article-metadata id)
         {read? :read? saved? :saved?} (rum/react a-md)]
-    [(if read? :div.article.read :div.article)
+    [(cond saved? :div.article.saved
+           read? :div.article.read
+           :else :div.article)
      [:a.title {:href link} title]
      [:br]
-     [:div.small date]
-     [:div.small (str (if read? "read" "unread") " / " (if saved? "saved" "unsaved"))]
+     [:div.small [:span date] [:span  {:dangerouslySetInnerHTML {:__html "&emsp;&emsp;&emsp;"}}] [:span (cond saved? "saved" 
+                                                                                                              read?  ""
+                                                                                                              :else "unread")]]
      [:div.content {:dangerouslySetInnerHTML {:__html desc}
                     :style {:display (if visible? "" "none")}}
       ]]))
@@ -83,7 +86,7 @@
         visible-nb  (or (-> fstate :feed-data :selected :number) 0)
         articles    (drop visible-nb articles)]
     [:div.feed
-      (when-not visible-id [:h1 ftitle])
+      (when-not visible-id [:h1.feed-title ftitle])
       (for [a articles
             :let [rum-key (:guid a)]]
         (rum/with-key (mk-article a (= rum-key visible-id)) rum-key)
