@@ -29,9 +29,11 @@
         feed-md  (io/load-feeds-md)
         get-fd-dir (fn [name]
                      (-> name feed-md :dir))
-        get-feeds-by-tags (fn []
+        get-feeds-by-tags (fn [] ;; this is horrible.
                             (let [tags-md (io/read-tags-md)
-                                  tags (sort-by #(-> % tags-md :position) (reduce #(into %1 %2) #{} (select [MAP-VALS :tags] feed-md)))
+                                  tags  (->> (select [MAP-VALS :tags] feed-md)
+                                             (reduce #(into %1 %2) #{})
+                                             (sort-by #(-> % tags-md :position)))
                                   get-feeds-by-tag (fn [tag]
                                                      (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md))]
                               (map (fn [tag] [tag (get-feeds-by-tag tag)]) tags)))  ;; sort-by

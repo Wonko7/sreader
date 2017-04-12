@@ -11,9 +11,6 @@
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
 
 (enable-console-print!)
-(def host "http://localhost:3000")
-
-;; define your app data so that it doesn't get over-written on reload
 
 
 ;; FIXME tmp:
@@ -26,7 +23,8 @@
 (defonce tags-state (atom {}))
 
 (defn mk-subs [feeds] ;; not worth being a comp yet
-   (for [{name :name unread :unread-count} feeds]
+   (for [{name :name unread :unread-count} feeds
+         :when (> unread 0)] ;; FIXME will change that for a toggle in ui
      [:div.subscription {:on-click #(request-feed name)}
       [:a {:href "javascript:void(0)"} name [:span.small " " unread]]]))
 
@@ -39,8 +37,7 @@
        [:div.tag [:a {:on-click #(toggle-tag-md tag :visible?)
                       :href "javascript:void(0)"} tag]
         (when (-> tag tag-md :visible?)
-          (mk-subs feeds))]
-       )]
+          (mk-subs feeds))])]
     ))
 
 (rum/mount (mk-subscriptions)
