@@ -17,22 +17,31 @@
 
 
 ;; FIXME tmp:
-(declare request-feed change-article-md)
+(declare request-feed change-article-md toggle-tag-md)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
-(defonce subscriptions-state (atom {:feeds [{:name "xkcd"} {:title "Slashdot"}]}))
+(defonce subscriptions-state (atom {}))
+(defonce tags-state (atom {}))
+
+(defn mk-subs [names] ;; not worth being a comp yet
+   (for [name names]
+     [:div.subscription {:on-click #(request-feed name)}
+      [:a {:href "javascript:void(0)"} name]]))
 
 (rum/defcs mk-subscriptions < rum/reactive
   [state]
   (let [subs (rum/react subscriptions-state)
-        ]
-    (into [:div.feeds ] ; xp, does not work.
-          (for [{t :name} subs]
-            [:a {:href "javascript:void(0)"}
-                 [:div.subscription {:on-click #(request-feed t)} t]]
-             ))))
+        tag-md (rum/react tags-state)]
+    [:div.feeds
+     (for [[tag feeds] subs]
+       [:div.tag [:a {:on-click #(toggle-tag-md tag :visible?)
+                      :href "javascript:void(0)"} tag]
+        (when (-> tag tag-md :visible?)
+          (mk-subs (map :name feeds)))]
+       )]
+    ))
 
 (rum/mount (mk-subscriptions)
            (. js/document (getElementById "subscriptions")))
@@ -43,17 +52,6 @@
 
 (defonce feed-state (atom {:feed-data {:title "Loading..."}}))
 (def article-metadata (atom {}))
-
-
-;; :div.article {;:tab-index -1 ;; needed for focus
-;;                    ;:on-focus #(do (reset! visible true)
-;;                    ;               (let [f-div (.querySelector js/document "#feed .feed")
-;;                    ;                     a-div (rum/dom-node state)]
-;;                    ;                 (set! (.-scrollTop f-div) (.-offsetTop a-div))
-;;                    ;                 (println :set (.-offsetTop a-div))
-;;                    ;                 ))
-;;                    ;:on-blur #(reset! visible false)
-;;                    }
 
 (rum/defcs mk-article < rum/reactive
   [state
@@ -105,6 +103,8 @@
     ;(ask to mark as read)
     (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
 
+
+
 (defn toggle-article-md [key]
   (let [guid (-> @feed-state :feed-data :selected :guid)
         feed (-> @feed-state :feed-data :title)
@@ -128,11 +128,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
 
-(defn request-subscriptions [title]
+(defn request-subscriptions []
   (go (let [json-reader (json/reader :json)
             response (<! (http/get "/subs/"))
-            response (json/read json-reader (:body response))]
-        (reset! subscriptions-state response))))
+            response (json/read json-reader (:body response))
+            subs-state (:subscriptions response)
+            t-state   (:tags response)
+            ]
+        (reset! subscriptions-state subs-state)
+        (reset! tags-state t-state))))
 
 (defn request-feed [title]
   (go (let [json-reader (json/reader :json)
@@ -146,7 +150,16 @@
             new-md      (:body (<! (http/post (str "/md/" feed "/" art-id) {:json-params md})))]
         (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
 
-
+(defn toggle-tag-md [tag key]
+    (go (let [json-writer (json/writer :json)
+              json-reader (json/reader :json)
+              k-val       (@tags-state tag)
+              k-val       (if k-val (not (k-val key)) true)
+              new-md      (:body (<! (http/post (str "/tag-md/" tag) {:json-params {key k-val}})))]
+          (println tag new-md)
+          (transform [ATOM (keypath tag)] #(merge % new-md) tags-state)
+          (println tag @tags-state)
+          )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; keyboard:
 

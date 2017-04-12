@@ -9,8 +9,10 @@
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
 
 (defn init [request-feed-ch request-feed-ans
+            request-subs-ch request-subs-ans
             request-article-md-change-ch request-article-md-change-ans
-            request-subs-ch request-subs-ans]
+            request-tag-md-change-ch request-tag-md-change-ans
+            ]
   (let [express (nodejs/require "express")
         bodyparser (nodejs/require "body-parser")
         app (new express)
@@ -31,18 +33,13 @@
                                       (let [article-id (-> req .-params h/to-clj)
                                             article-id (transform [:article] js/encodeURIComponent article-id)
                                             metadata (-> req .-body h/to-clj)]
-                                        (println :req article-id )
-                                        (println :req-md metadata )
                                         (go (>! request-article-md-change-ch {:article-id article-id :metadata metadata})
                                             (.send res (h/to-js (<! request-article-md-change-ans))))))) ;; FIXME is h/to-js necessary?
-
-    ;app.use('/static', express.static('public'))
+    (.post app "/tag-md/:tag" (fn [req res]
+                                (let [tag-id (:tag (-> req .-params h/to-clj))
+                                      metadata (-> req .-body h/to-clj)]
+                                  (go (>! request-tag-md-change-ch {:tag-id tag-id :metadata metadata})
+                                      (.send res (h/to-js (<! request-tag-md-change-ans)))))))
 
     ;; setup listen:
-    (.listen app 3000 #(println "We're listening."))
-    ))
-
-	(comment (fn [req, res]
-                     (println (-> req .-params h/to-clj))
-                     (swap! lol #(str "lol " %))
-                     (.send res (str (-> req .-params h/to-clj) "<br>" @lol))))
+    (.listen app 3000 #(println "We're listening."))))

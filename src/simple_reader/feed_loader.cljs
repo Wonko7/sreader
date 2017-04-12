@@ -97,3 +97,26 @@
 (defn write-article-md [feed article md]
   (let [md-path (.join Path (.homedir OS) (:root config) "feeds" feed article "metadata")]
     (.writeFileSync FS md-path (h/write-json md))))
+
+
+(defn read-tag-md [tag]
+  (println :tag tag)
+  (let [md-path (mk-root-path "tags" tag "metadata")
+        exists? (.existsSync FS md-path)]
+    (if exists?
+      (h/read-json (.readFileSync FS md-path))
+      {})))
+
+(defn read-tags-md []
+  (let [tpath (mk-root-path "tags")
+        tags (.readdirSync FS tpath)]
+    (into {} (for [tag tags]
+               {tag (read-tag-md tag)}))))
+
+(defn write-tag-md [tag md]
+  (let [tag-dir (mk-root-path "tags" tag)
+        md-path (mk-root-path "tags" tag "metadata")
+        exists? (.existsSync FS tag-dir)]
+    (when-not exists?
+      (.mkdirSync FS tag-dir))
+    (.writeFileSync FS md-path (h/write-json md))))
