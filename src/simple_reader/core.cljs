@@ -43,7 +43,8 @@
 
     ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! feed-req)]
-             (println :getting fixme)
+             (println :getting fixme (feed-md feed))
+             ;(println (interpose "\n" (keys feed-md)))
              (let [f (h/write-json {:feed-data {:title feed} :articles (sort-by :date (io/read-feed (get-fd-dir feed)))})]
                (>! feed-ans f)
                (recur (<! feed-req))))
@@ -75,18 +76,24 @@
                (recur (<! tag-md-req))))
 
     ;; scrape subscriptions once.
-    (comment (let [subs []
-          subss [{:link "https://xkcd.com/atom.xml" :name "xkcd"}
-                {:link "http://rss.slashdot.org/Slashdot/slashdotMainatom" :name "SlashDot"}]]
-      (doseq [{link :link name :name} subs]
-             (let [articles (chan)]
-               (println "fetching" name)
-               (fr/read link articles)
-               (go-loop [to-save (<! articles)]
-                        (when (not= :done to-save)
-                          (io/save-article (get-fd-dir name) to-save)
-                          (recur (<! articles)))
-                        )))))
+    (let [subs [ ]
+          one-by-one (chan)]
+      (go (>! one-by-one :go))
+      (comment (go (doseq [[k {link :url name :name dir :dir}] feed-md
+                   ;:when (some #(= dir %) subs)
+                   ]
+            (let [articles (chan)]
+              (<! one-by-one)
+              (println "fetching" name)
+              (fr/read link articles)
+              (go-loop [to-save (<! articles)]
+                       (cond
+                         (= :done to-save)  (>! one-by-one :go) ;:done
+                         (= :error to-save) (>! one-by-one :go) ;:error (comment (io/mv-bad-feed (get-fd-dir name)))
+                         :else (do (io/save-article (get-fd-dir name) to-save)
+                                   (recur (<! articles))))
+
+                       ))))))
     ))
 
 

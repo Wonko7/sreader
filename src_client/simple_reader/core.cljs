@@ -72,13 +72,20 @@
                     :style {:display (if visible? "" "none")}}
       ]]))
 
-(rum/defcs mk-feed < rum/reactive [state]
+(rum/defcs mk-feed < rum/reactive
+                     {:did-update (fn [state]
+                                    (let [comp     (:rum/react-component state)
+                                          dom-node (js/ReactDOM.findDOMNode comp)]
+                                      (set! (.-scrollTop dom-node) 0) )
+                                    state)}
+  [state]
   (let [fstate      (rum/react feed-state)
         ftitle      (-> fstate :feed-data :title)
         articles    (:articles fstate)
         visible-id  (-> fstate :feed-data :selected :guid)
         visible-nb  (or (-> fstate :feed-data :selected :number) 0)
-        articles    (drop visible-nb articles)]
+        articles    (drop visible-nb articles)
+        root-div    (rum/dom-node state)]
     [:div.feed
       (when-not visible-id [:h1.feed-title ftitle])
       (for [a articles
@@ -109,7 +116,6 @@
   (let [guid (-> @feed-state :feed-data :selected :guid)
         feed (-> @feed-state :feed-data :title)
         read-state (select-one [ATOM (keypath guid) ATOM (keypath key)] article-metadata)]
-    (println :cur-read read-state)
     (change-article-md feed guid {key (not read-state)})
     ))
 
@@ -121,7 +127,6 @@
                            {id (atom (or md {:saved? false :read? false}))})
                          articles))
         ]
-    (println (select [:articles ALL :metadata] feed-state))
     (reset! article-metadata md)
     feed-state))
 
@@ -140,14 +145,14 @@
 
 (defn request-feed [title]
   (go (let [json-reader (json/reader :json)
-            response (<! (http/get (str "/f/" title "/42")))
+            response (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
             response (json/read json-reader (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
 
 (defn change-article-md [feed art-id md]
   (go (let [json-writer (json/writer :json)
             json-reader (json/reader :json)
-            new-md      (:body (<! (http/post (str "/md/" feed "/" art-id) {:json-params md})))]
+            new-md      (:body (<! (http/post (str "/md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
         (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
 
 (defn toggle-tag-md [tag key]
@@ -155,11 +160,8 @@
               json-reader (json/reader :json)
               k-val       (@tags-state tag)
               k-val       (if k-val (not (k-val key)) true)
-              new-md      (:body (<! (http/post (str "/tag-md/" tag) {:json-params {key k-val}})))]
-          (println tag new-md)
-          (transform [ATOM (keypath tag)] #(merge % new-md) tags-state)
-          (println tag @tags-state)
-          )))
+              new-md      (:body (<! (http/post (str "/tag-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
+          (transform [ATOM (keypath tag)] #(merge % new-md) tags-state))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; keyboard:
 

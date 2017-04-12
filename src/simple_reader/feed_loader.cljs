@@ -120,3 +120,9 @@
     (when-not exists?
       (.mkdirSync FS tag-dir))
     (.writeFileSync FS md-path (h/write-json md))))
+
+(defn mv-bad-feed [feed]
+  (let [opath (mk-root-path "feeds" feed)
+        npath (mk-root-path "bad-feeds" feed)]
+    (.renameSync FS opath npath)
+    ))

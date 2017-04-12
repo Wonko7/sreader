@@ -79,20 +79,20 @@
 
 (defn read [feed result-chan]
   "Will read each value from the given feed address and write them to the result-chan."
-  (let [req   ((node/require "request") feed (cljs/clj->js {:timeout 5000 :pool false}))
+  (let [req   ((node/require "request") feed (cljs/clj->js {:timeout 50000 :pool false}))
         fp    (node/require "feedparser")
         fp    (new fp)]
-    (.setMaxListeners req 50)
+    (.setMaxListeners req 1000)
     (.setHeader req "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36")
     (.setHeader req "accept" "text/html,application/xhtml+xml")
-    (.on req "error" #(go (dprint "error requesting" feed)
-                          (>! result-chan :done)))
+    (.on req "error" #(go (println "error requesting" feed %)
+                          (>! result-chan :error)))
     ;(.on req "end" #(go (println :feed-read-end)
     ;                    (>! result-chan :done)))
     (.on req "response" (fn [result]
                           (when (not= 200 (.-statusCode result))
                             (dprint "bad status code:" (.-statusCode result) )
-                            (throw :bad-status-code)) ;; just burn for now.
+                            (go (>! result-chan :error))) ;; just burn for now.
                           (let [headers (h/to-clj (.-headers result))
                                 encoding (:content-encoding headers)
                                 charset (:content-type headers)
@@ -107,6 +107,6 @@
                                                 (recur (.read this)))
                                             ))))
     (.on fp "end" #(go (>! result-chan :done)))
-    (.on fp "error" #(go (println :got-error %)
-                         (>! result-chan :done)))
+    (.on fp "error" #(go (println :got-error feed %)
+                         (>! result-chan :error)))
     ))
