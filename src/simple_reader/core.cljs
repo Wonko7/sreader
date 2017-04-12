@@ -30,10 +30,11 @@
         get-fd-dir (fn [name]
                      (-> name feed-md :dir))
         get-feeds-by-tags (fn []
-                            (let [tags (sort (reduce #(into %1 %2) #{} (select [MAP-VALS :tags] feed-md)))
+                            (let [tags-md (io/read-tags-md)
+                                  tags (sort-by #(-> % tags-md :position) (reduce #(into %1 %2) #{} (select [MAP-VALS :tags] feed-md)))
                                   get-feeds-by-tag (fn [tag]
                                                      (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md))]
-                              (map (fn [tag] [tag (get-feeds-by-tag tag)]) tags))) 
+                              (map (fn [tag] [tag (get-feeds-by-tag tag)]) tags)))  ;; sort-by
         ]
     ;; init http
     (http/init feed-req feed-ans
@@ -41,7 +42,31 @@
                art-md-req art-md-ans
                tag-md-req tag-md-ans)
 
-    (println (io/count-unread (get-fd-dir "Slashdot")))
+    ;; (println (io/count-unread (get-fd-dir "Slashdot")))
+    ;; (let [tags [
+    ;;             "lol"
+    ;;             "Comics"
+    ;;             "Blogs"
+    ;;             "Authors"
+    ;;             "Geek Stuff"
+    ;;             "Tech Fun"
+    ;;             "Gentoo"
+    ;;             "Secu"
+    ;;             "Locks"
+    ;;             "Climbing"
+    ;;             "Survivalism"
+    ;;             "IE"
+    ;;             "Lisp"
+    ;;             "Math"
+    ;;             "News"
+    ;;             "Thinkers"
+
+
+    ;;             ]
+    ;;       ]
+    ;;   (doseq [[tag md] (map (fn [t n] [t {:position n}]) tags (range))]
+    ;;            (io/write-tag-md tag md)
+    ;;            ))
 
     ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! feed-req)]
@@ -79,23 +104,23 @@
 
     ;; scrape subscriptions once.
     (comment (let [subs [ ]
-          one-by-one (chan)]
-      ;(go (>! one-by-one :go))
-      (go (doseq [[k {link :url name :name dir :dir}] feed-md
-                   ;:when (some #(= dir %) subs)
-                   ]
-            (let [articles (chan)]
-              ;(<! one-by-one)
-              (println "fetching" name)
-              (fr/read link articles)
-              (go-loop [to-save (<! articles)]
-                       (cond
-                         (= :done to-save)  :done ;(>! one-by-one :go)
-                         (= :error to-save) :error ;(>! one-by-one :go) ;:error (comment (io/mv-bad-feed (get-fd-dir name)))
-                         :else (do (io/save-article (get-fd-dir name) to-save)
-                                   (recur (<! articles))))
+                   one-by-one (chan)]
+               ;(go (>! one-by-one :go))
+               (go (doseq [[k {link :url name :name dir :dir}] feed-md
+                           ;:when (some #(= dir %) subs)
+                           ]
+                     (let [articles (chan)]
+                       ;(<! one-by-one)
+                       (println "fetching" name)
+                       (fr/read link articles)
+                       (go-loop [to-save (<! articles)]
+                                (cond
+                                  (= :done to-save)  :done ;(>! one-by-one :go)
+                                  (= :error to-save) :error ;(>! one-by-one :go) ;:error (comment (io/mv-bad-feed (get-fd-dir name)))
+                                  :else (do (io/save-article (get-fd-dir name) to-save)
+                                            (recur (<! articles))))
 
-                       ))))))
+                                ))))))
     ))
 
 
