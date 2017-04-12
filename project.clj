@@ -24,7 +24,7 @@
 
   :cljsbuild {:builds
               [{:id "client"
-                :source-paths ["src_client"]
+                :source-paths ["src"]
 
                 ;; the presence of a :figwheel configuration here
                 ;; will cause figwheel to inject the figwheel client
@@ -37,7 +37,7 @@
                            ;:open-urls ["http://localhost:3449/index.html"]
                            }
 
-                :compiler {:main simple-reader.core
+                :compiler {:main client.core
                            :asset-path "js/compiled/out"
                            :output-to "resources/public/js/compiled/simple_reader.js"
                            :output-dir "resources/public/js/compiled/out"

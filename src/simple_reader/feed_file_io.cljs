@@ -1,4 +1,4 @@
-(ns simple-reader.feed-loader
+(ns simple-reader.feed-file-io
   (:require
     [cljs.nodejs :as node]
     [cljs.core.async :refer [chan <! >!] :as a]

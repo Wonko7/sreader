@@ -1,4 +1,4 @@
-(ns simple-reader.core
+(ns client.core
   (:require [rum.core :as rum]
             [cljs-http.client :as http]
             [cognitect.transit :as json]

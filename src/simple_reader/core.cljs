@@ -7,7 +7,7 @@
     [simple-reader.helpers :as h]
     [simple-reader.render :as html]
     [cognitect.transit :as json]
-    [simple-reader.feed-loader :as io]
+    [simple-reader.feed-file-io :as io]
     [simple-reader.http :as http]
     [com.rpl.specter :as s :refer [collect setval select-one select transform view filterer keypath pred ALL ATOM FIRST MAP-VALS]])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
