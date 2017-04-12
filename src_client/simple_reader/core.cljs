@@ -22,7 +22,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
-(defonce subscriptions-state (atom {:feeds [{:title "xkcd"} {:title "SlashDot"}]}))
+(defonce subscriptions-state (atom {:feeds [{:title "xkcd"} {:title "Slashdot"}]}))
 
 (rum/defcs mk-subscriptions < rum/reactive
                              (rum/local true ::visible)
@@ -178,7 +178,7 @@
           ))))
 
 ;; init a page, fixme:
-(request-feed "SlashDot")
+(request-feed "Slashdot")
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

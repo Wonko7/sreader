@@ -14,31 +14,38 @@
 
 (nodejs/enable-util-print!)
 
+
 (defn testing []
   (let [article-req (chan)
         article-ans (chan)
         art-md-req  (chan)
         art-md-ans  (chan)
+        ;;
+        feed-md  (io/load-feeds-md)
+        get-fd-dir (fn [name]
+                     (-> name feed-md :dir))
         ]
-
     ;; init http
     (http/init article-req article-ans art-md-req art-md-ans)
+
+    ;; testing:
+    ;(println feed-md)
 
     ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! article-req)]
              (println :getting fixme)
-             (let [f (h/write-json {:feed-data {:title feed} :articles (sort-by :date (io/read-feed feed))})]
+             (let [f (h/write-json {:feed-data {:title feed} :articles (sort-by :date (io/read-feed (get-fd-dir feed)))})]
                (>! article-ans f)
                (recur (<! article-req))))
 
     ;; handle metadata changes:
     (go-loop [{{feed-id :feed article-id :article} :article-id new-md :metadata} (<! art-md-req)]
-             (let [cur-md  (io/read-article-md feed-id article-id)
+             (let [cur-md  (io/read-article-md (get-fd-dir feed-id) article-id)
                    md       (merge cur-md new-md)]
                (println :cur cur-md)
                (println :new new-md)
                (println :merge md)
-               (io/write-article-md feed-id article-id md)
+               (io/write-article-md (get-fd-dir feed-id) article-id md)
                (>! art-md-ans md)
                (recur (<! art-md-req))))
 
@@ -51,11 +58,9 @@
                (println "fetching" name)
                (fr/read link articles)
                (go-loop [to-save (<! articles)]
-                        (if (not= :done to-save)
-                          (do 
-                            (io/save-article name to-save)
-                            (recur (<! articles)))
-                          (println :godone :on name))
+                        (when (not= :done to-save)
+                          (io/save-article (get-fd-dir name) to-save)
+                          (recur (<! articles)))
                         ))))
     ))
 
