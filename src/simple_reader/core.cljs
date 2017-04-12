@@ -41,6 +41,8 @@
                art-md-req art-md-ans
                tag-md-req tag-md-ans)
 
+    (println (io/count-unread (get-fd-dir "Slashdot")))
+
     ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! feed-req)]
              (println :getting fixme (feed-md feed))
@@ -76,7 +78,7 @@
                (recur (<! tag-md-req))))
 
     ;; scrape subscriptions once.
-    (let [subs [ ]
+    (comment (let [subs [ ]
           one-by-one (chan)]
       ;(go (>! one-by-one :go))
       (go (doseq [[k {link :url name :name dir :dir}] feed-md
@@ -93,7 +95,7 @@
                          :else (do (io/save-article (get-fd-dir name) to-save)
                                    (recur (<! articles))))
 
-                       )))))
+                       ))))))
     ))
 
 

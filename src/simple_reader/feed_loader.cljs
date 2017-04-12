@@ -37,10 +37,24 @@
       (do (.mkdirSync FS fpath)
           (.writeFileSync FS f-md (h/write-json feed-md))))))
 
+(defn count-unread [feed]
+  (let [path        (mk-root-path "feeds" feed)
+        arts        (->> (.readdirSync FS path)
+                         (map #(mk-root-path "feeds" feed %))
+                         (filter #(.isDirectory (.statSync FS %)))
+                         (map #(.join Path % "metadata")))
+        no-md-nb    (count (filter #(not (.existsSync FS %)) arts))
+        have-md-nb  (count (->> arts ;; Fixme transducers 
+                                (filter #(.existsSync FS %))
+                                (map #(.readFileSync FS %))
+                                (map #(h/read-json %))
+                                (filter #(= false (:read? %)))))]
+    (+ no-md-nb have-md-nb)))
+
 (defn load-feed-md [dir]
   (let [path  (mk-root-path "feeds" dir "feed-metadata")
         md    (h/read-json (.readFileSync FS path))]
-    {(:name md) (merge {:dir dir} md)}))
+    {(:name md) (merge {:dir dir :unread-count (count-unread dir)} md)}))
 
 (defn load-feeds-md []
   (let [froot     (mk-root-path "feeds")

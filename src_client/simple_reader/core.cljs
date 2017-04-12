@@ -25,10 +25,10 @@
 (defonce subscriptions-state (atom {}))
 (defonce tags-state (atom {}))
 
-(defn mk-subs [names] ;; not worth being a comp yet
-   (for [name names]
+(defn mk-subs [feeds] ;; not worth being a comp yet
+   (for [{name :name unread :unread-count} feeds]
      [:div.subscription {:on-click #(request-feed name)}
-      [:a {:href "javascript:void(0)"} name]]))
+      [:a {:href "javascript:void(0)"} name [:span.small " " unread]]]))
 
 (rum/defcs mk-subscriptions < rum/reactive
   [state]
@@ -39,7 +39,7 @@
        [:div.tag [:a {:on-click #(toggle-tag-md tag :visible?)
                       :href "javascript:void(0)"} tag]
         (when (-> tag tag-md :visible?)
-          (mk-subs (map :name feeds)))]
+          (mk-subs feeds))]
        )]
     ))
 
