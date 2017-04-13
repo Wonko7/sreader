@@ -175,14 +175,16 @@
        guid       (:guid (nth articles next-nb))]
     ;(setval [ATOM (keypath guid) ATOM :read?] true article-metadata)
     ;(ask to mark as read)
+    (change-article-status-md "read" guid)
     (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
 
-(defn change-article-status-md [new-state]
-  (let [guid (-> @feed-state :feed-data :selected :guid)
+(defn change-article-status-md [new-state & [gguid]]
+  (let [guid (or gguid (-> @feed-state :feed-data :selected :guid))
         feed (-> @feed-state :feed-data :title)
         cur-state (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
         cur-state (or cur-state "unread")
         new-state (cond
+                    (and gguid (not= cur-state "saved"))                  "read" ;; hackish, this is for auto-mark-read on article change
                     (and (not= cur-state "saved") (= new-state "saved"))  "saved"
                     (and (= cur-state "saved") (= new-state "read"))      nil
                     (and (= cur-state "saved") (= new-state "saved"))     "unread"
