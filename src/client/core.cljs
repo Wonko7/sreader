@@ -180,6 +180,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; search:
 
 (defonce search-state (atom {:visible false}))
+;(defonce search-state (atom {:visible true :results ["aoeu" "aoeutnhu " "oentuhnh"]}))
 
 (defn select-search-feed []
   (when-let [feed (first (:results @search-state))]
@@ -194,27 +195,26 @@
 (rum/defc mk-search < rum/reactive
   {:did-update (fn [state]
                  (let [comp     (:rum/react-component state)
-                       dom-node (js/ReactDOM.findDOMNode comp)
-                       inp-node (.-firstChild dom-node)]
-                   (.focus inp-node)
+                       dom-node (js/ReactDOM.findDOMNode comp)]
+                   (-> dom-node .-firstChild .-firstChild .focus)
                    state))}
   []
   (let [s-state (rum/react search-state)
-        v?      (:visible s-state)
-        res     (:results s-state)
-        subs    (sort (select [ATOM ALL MAP-VALS ALL :name] subscriptions-state))] ;; we're caching this to avoid redoing that on each keypress.
+        v?        (:visible s-state)
+        [r & res] (:results s-state)
+        subs      (sort (select [ATOM ALL MAP-VALS ALL :name] subscriptions-state))] ;; we're caching this to avoid redoing that on each keypress.
     (when v? 
-      [:div#search
-       [:input#search-input {:type :text
-                             :on-key-press #(let [character (.-charCode %)]
-                                              (when (= character 13)
-                                                (select-search-feed))
-                                              (when (:visible @search-state)
-                                                (comment (.stopPropagation %))))
-                             :on-change #(search subs (-> % .-target .-value))}]
-       (for [r res]
-         [:div.res r])
-       ])))
+      [:div#search-wrapper
+       [:div#search
+        [:input#search-input {:type :text
+                              :on-key-press #(let [character (.-charCode %)]
+                                               (when (= character 13)
+                                                 (select-search-feed))
+                                               (when (:visible @search-state)
+                                                 (comment (.stopPropagation %))))
+                              :on-change #(search subs (-> % .-target .-value))}]
+        (concat [[:div.first-result r]] (map #(vector :div %) res))
+        ]])))
 
 (rum/mount (mk-search)
            (. js/document (getElementById "search-anchor")))
