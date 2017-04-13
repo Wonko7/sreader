@@ -188,8 +188,16 @@
   (reset! search-state {:visible false}))
 
 (defn search [subs text]
-  (let [re (re-pattern (str "(?i)" text))
-        res (take 10 (filter #(re-find re %) subs))]
+  (let [re (re-pattern (str "(?i)" (apply str (interpose ".*?" text))))
+        ;res (take 10 (filter #(re-find re %) subs))
+        res (->> subs
+                (map #(vector (re-find re %) %))
+                (filter first)
+                (sort-by #(-> % first count))
+                (take 10)
+                (map second))
+        ]
+    (println (apply str (interpose ".*?" text)))
     (setval [ATOM :results] res search-state)))
 
 (rum/defc mk-search < rum/reactive
