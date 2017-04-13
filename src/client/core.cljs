@@ -66,23 +66,35 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
-(defn mk-subs [feeds] ;; not worth being a comp yet
+(defn mk-subs [feeds show-all] ;; not worth being a comp yet
    (for [{name :name unread :unread-count} feeds
-         :when (> unread 0)] ;; FIXME will change that for a toggle in ui
+         :when (or show-all (> unread 0))
+         :let [a (if (zero? unread) :a.grey :a)]]
      [:div.subscription {:on-click #(request-feed name)}
-      [:a {:href "javascript:void(0)"} name [:span.small " " unread]]]))
+      [a {:href "javascript:void(0)"} name [:span.small " " unread]]]))
+
+(rum/defcs mk-tag < rum/reactive
+                    (rum/local false ::show-all-read)
+  [state tag feeds]
+  (let [tag-md    (rum/react tags-state)
+        v?        (-> tag tag-md :visible?)
+        show-all  (::show-all-read state)]
+    [:div.tag
+     [:a {:on-click #(toggle-tag-md tag :visible?)
+          :href "javascript:void(0)"} (str (if v? "▾ " "▸ ") tag)]
+     [:a.sub-show-all {:on-click #(swap! show-all not)
+                       :href "javascript:void(0)"} (str (if @show-all " - " " + "))]
+     (when v?
+       (mk-subs feeds @show-all))]))
 
 (rum/defcs mk-subscriptions < rum/reactive
   [state]
-  (let [subs (rum/react subscriptions-state)
-        tag-md (rum/react tags-state)]
+  (let [subs      (rum/react subscriptions-state)
+        tag-md    (rum/react tags-state)
+        ]
     [:div.feeds
      (for [[tag feeds] subs]
-       [:div.tag [:a {:on-click #(toggle-tag-md tag :visible?)
-                      :href "javascript:void(0)"} tag]
-        (when (-> tag tag-md :visible?)
-          (mk-subs feeds))])]
-    ))
+       (mk-tag tag feeds))]))
 
 (rum/mount (mk-subscriptions)
            (. js/document (getElementById "subscriptions")))
