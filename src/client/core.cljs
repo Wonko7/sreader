@@ -15,7 +15,7 @@
 
 
 ;; FIXME tmp:
-(declare request-feed change-article-md toggle-tag-md)
+(declare request-feed change-article-md toggle-tag-md change-feed-md)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
@@ -59,7 +59,7 @@
         {read-status :status} (rum/react a-md)
         [art-div-style art-read-status] (condp = read-status
                                           "saved" [:div.article.saved "saved"]
-                                          "read" [:div.article.read ""]
+                                          "read"  [:div.article.read ""]
                                           [:div.article "unread"])]
     [art-div-style
      [:a.title {:href link} title]
@@ -68,6 +68,7 @@
      [:div.content {:dangerouslySetInnerHTML {:__html desc}
                     :style {:display (if visible? "" "none")}}
       ]]))
+
 
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
@@ -86,13 +87,23 @@
         root-div    (rum/dom-node state)]
     [:div.feed
       (when-not visible-id
-        [:div [:h1.feed-title ftitle]
-         [:span.feed-controls
-          [:a {:on-click #(feed-toggle-order ftitle)
-               :href "javascript:void(0)"}
-
-           ]]
-         ])
+        (let [mk-select     (fn [value values callback]
+                              [:select
+                               {:on-change callback ;(fn [e] (reset! *ref (long (.. e -target -value))))
+                                :value value }
+                               (for [v values]
+                                 [:option { :value v } v])])
+              order         (or (:order f-md) "oldest then saved")
+              order-values  ["oldest" "newest" "oldest then saved"]
+              view          (or (:view-art-status f-md) "unread")
+              view-values   ["unread" "saved" "all"]
+              ]
+          [:div [:h1.feed-title ftitle]
+           [:span.feed-controls
+            (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
+            (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))
+            ]
+         ]))
       (for [a articles
             :let [rum-key (:guid a)]]
         (rum/with-key (mk-article a (= rum-key visible-id)) rum-key)
@@ -115,8 +126,6 @@
     ;(ask to mark as read)
     (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
 
-
-
 (defn change-article-status-md [new-state]
   (let [guid (-> @feed-state :feed-data :selected :guid)
         feed (-> @feed-state :feed-data :title)
@@ -129,8 +138,7 @@
                     (and (= cur-state "unread") (= new-state "read"))     "read"
                     (and (= cur-state "read") (= new-state "read"))       "unread")]
     (when new-state
-      (change-article-md feed guid {:status new-state}))
-    ))
+      (change-article-md feed guid {:status new-state}))))
 
 (defn init-feed-metadata [feed-state]
   (let [feed-state (setval [:feed-data :selected] nil feed-state)
@@ -158,6 +166,12 @@
   (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
             response    (h/read-json (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
+
+(defn change-feed-md [feed md]
+  (go (let [new-md      (:body (<! (http/post (str "/f-md/" (js/encodeURIComponent feed)) {:json-params md})))]
+        ;(transform [ATOM :metadata] #(merge % new-md) feed-state)
+        (request-feed feed))))
+
 
 (defn change-article-md [feed art-id md]
   (go (let [new-md      (:body (<! (http/post (str "/md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]

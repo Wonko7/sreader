@@ -11,6 +11,7 @@
 (defn init [request-feed-ch request-feed-ans
             request-subs-ch request-subs-ans
             request-article-md-change-ch request-article-md-change-ans
+            request-feed-md-change-ch request-feed-md-change-ans
             request-tag-md-change-ch request-tag-md-change-ans
             ]
   (let [express (nodejs/require "express")
@@ -35,8 +36,13 @@
                                             metadata    (-> req .-body h/to-clj)]
                                         (go (>! request-article-md-change-ch {:article-id article-id :metadata metadata})
                                             (.send res (h/to-js (<! request-article-md-change-ans))))))) ;; FIXME is h/to-js necessary?
+    (.post app "/f-md/:feed" (fn [req res]
+                               (let [feed-id  (-> req .-params h/to-clj :feed js/encodeURIComponent)
+                                     metadata (-> req .-body h/to-clj)]
+                                 (go (>! request-feed-md-change-ch {:feed feed-id :metadata metadata})
+                                     (.send res (h/to-js (<! request-feed-md-change-ans)))))))
     (.post app "/tag-md/:tag" (fn [req res]
-                                (let [tag-id (:tag (-> req .-params h/to-clj))
+                                (let [tag-id (-> req .-params h/to-clj :tag)
                                       metadata (-> req .-body h/to-clj)]
                                   (go (>! request-tag-md-change-ch {:tag-id tag-id :metadata metadata})
                                       (.send res (h/to-js (<! request-tag-md-change-ans)))))))

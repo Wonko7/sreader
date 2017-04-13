@@ -21,6 +21,8 @@
         feed-ans    (chan)
         art-md-req  (chan)
         art-md-ans  (chan)
+        feed-md-req (chan)
+        feed-md-ans (chan)
         tag-md-req  (chan)
         tag-md-ans  (chan)
         subs-req    (chan)
@@ -42,13 +44,30 @@
     (http/init feed-req feed-ans
                subs-req subs-ans
                art-md-req art-md-ans
+               feed-md-req feed-md-ans
                tag-md-req tag-md-ans)
 
     ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! feed-req)]
              (println :getting fixme (feed-md feed))
              ;(println (interpose "\n" (keys feed-md)))
-             (let [f (h/write-json {:feed-data {:title feed} :articles (sort-by :date (io/read-feed (get-fd-dir feed)))})]
+             (let [metadata (io/read-feed-md feed)
+                   view     (or (:view-art-status metadata) "unread")
+                   order    (or (:order metadata)  "oldest then saved")
+                   articles (io/read-feed (get-fd-dir feed))
+                   ;view-values   ["unread" "saved" "all"]
+                   articles (condp = view 
+                              "unread"  (filter #(not= "read" (-> % :metadata :status)) articles)
+                              "saved"   (filter #(= "saved" (-> % :metadata :status)) articles)
+                              articles)
+                   articles (condp = order
+                              "oldest" (sort-by :date articles)
+                              "newest" (reverse (sort-by :date articles))
+                              (let [unsaved (sort-by :date (filter #(not= "saved" (-> % :metadata :status)) articles))
+                                    saved   (sort-by :date (filter #(= "saved" (-> % :metadata :status)) articles))]
+                                (concat unsaved saved)))
+                   f (h/write-json {:feed-data {:title feed} :metadata metadata
+                                    :articles articles})]
                (>! feed-ans f)
                (recur (<! feed-req))))
 
@@ -68,6 +87,15 @@
                (io/write-article-md (get-fd-dir feed-id) article-id md)
                (>! art-md-ans md)
                (recur (<! art-md-req))))
+
+    ;; handle feed metadata changes:
+    (go-loop [{feed :feed new-md :metadata} (<! feed-md-req)]
+             (println :f-md-ch feed new-md)
+             (let [cur-md  (io/read-feed-md feed)
+                   md      (merge cur-md new-md)]
+               (io/write-feed-md feed md)
+               (>! feed-md-ans md)
+               (recur (<! feed-md-req))))
 
     ;; handle tag metadata changes:
     (go-loop [{tag :tag-id new-md :metadata} (<! tag-md-req)]

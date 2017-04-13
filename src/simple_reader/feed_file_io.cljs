@@ -122,6 +122,19 @@
            (map load-art)
            (filter identity)))))
 
+(defn read-feed-md [feed]
+  (let [md-path (mk-root-path "feeds" feed "metadata")
+        exists? (.existsSync FS md-path)]
+    (if exists?
+      (read-json-file md-path)
+      {})))
+
+(defn write-feed-md [feed md]
+  (let [feed-dir (mk-root-path "feeds" feed)
+        md-path (mk-root-path "feeds" feed "metadata")
+        exists? (.existsSync FS feed-dir)]
+    (write-json-file md-path md)))
+
 
 ;;;;;;;;;; tags:
 
