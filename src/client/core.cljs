@@ -194,10 +194,10 @@
 (rum/defc mk-search < rum/reactive
   {:did-update (fn [state]
                  (let [comp     (:rum/react-component state)
-                       dom-node (js/ReactDOM.findDOMNode comp)]
-                   (.focus (.-firstChild dom-node))
+                       dom-node (js/ReactDOM.findDOMNode comp)
+                       inp-node (.-firstChild dom-node)]
+                   (.focus inp-node)
                    state))}
-
   []
   (let [s-state (rum/react search-state)
         v?      (:visible s-state)
@@ -207,11 +207,10 @@
       [:div#search
        [:input#search-input {:type :text
                              :on-key-press #(let [character (.-charCode %)]
-                                              (condp = character ;; FIX "b" still caught in other listener
-                                                13 (select-search-feed)
-                                                :else-nothing
-                                                )
-                                              (.stopPropagation %))
+                                              (when (= character 13)
+                                                (select-search-feed))
+                                              (when (:visible @search-state)
+                                                (comment (.stopPropagation %))))
                              :on-change #(search subs (-> % .-target .-value))}]
        (for [r res]
          [:div.res r])
@@ -251,14 +250,15 @@
   (go (while true
         (let [key-event (<! keypresses)
               character (.fromCharCode js/String (.-charCode key-event))]
-          (condp = character
-            "j" (change-article 1)
-            "k" (change-article -1)
-            "m" (change-article-status-md "read")
-            "s" (change-article-status-md "saved")
-            "b" (transform [ATOM :visible] not search-state)
-            :else-nothing
-            )
+          (when-not (:visible @search-state) ;; FIXME I hate myself.
+            (condp = character
+              "j" (change-article 1)
+              "k" (change-article -1)
+              "m" (change-article-status-md "read")
+              "s" (change-article-status-md "saved")
+              "b" (transform [ATOM :visible] not search-state)
+              :else-nothing
+              ))
           ))))
 
 ;; init a page, fixme:
