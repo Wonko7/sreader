@@ -210,7 +210,8 @@
                                               (condp = character ;; FIX "b" still caught in other listener
                                                 13 (select-search-feed)
                                                 :else-nothing
-                                                ))
+                                                )
+                                              (.stopPropagation %))
                              :on-change #(search subs (-> % .-target .-value))}]
        (for [r res]
          [:div.res r])
