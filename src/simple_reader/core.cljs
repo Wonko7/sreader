@@ -1,7 +1,7 @@
 ;(ns ^:figwheel-always simple-reader.core
 (ns simple-reader.core
   (:require
-    [cljs.nodejs :as nodejs]
+    [cljs.nodejs :as node]
     [simple-reader.feedreader :as fr]
     [cljs.core.async :refer [chan <! >!] :as a]
     [simple-reader.helpers :as h]
@@ -13,7 +13,7 @@
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
 
-(nodejs/enable-util-print!)
+(node/enable-util-print!)
 
 
 (defn testing []
@@ -35,7 +35,7 @@
                                              (reduce #(into %1 %2) #{})
                                              (sort-by #(-> % tags-md :position)))
                                   get-feeds-by-tag (fn [tag]
-                                                     (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md))]
+                                                     (sort-by :name (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md)))] ;; might be transformable instead
                               (map (fn [tag] [tag (get-feeds-by-tag tag)]) tags)))  ;; sort-by
         ]
     ;; init http
@@ -43,32 +43,6 @@
                subs-req subs-ans
                art-md-req art-md-ans
                tag-md-req tag-md-ans)
-
-    ;; (println (io/count-unread (get-fd-dir "Slashdot")))
-    ;; (let [tags [
-    ;;             "lol"
-    ;;             "Comics"
-    ;;             "Blogs"
-    ;;             "Authors"
-    ;;             "Geek Stuff"
-    ;;             "Tech Fun"
-    ;;             "Gentoo"
-    ;;             "Secu"
-    ;;             "Locks"
-    ;;             "Climbing"
-    ;;             "Survivalism"
-    ;;             "IE"
-    ;;             "Lisp"
-    ;;             "Math"
-    ;;             "News"
-    ;;             "Thinkers"
-
-
-    ;;             ]
-    ;;       ]
-    ;;   (doseq [[tag md] (map (fn [t n] [t {:position n}]) tags (range))]
-    ;;            (io/write-tag-md tag md)
-    ;;            ))
 
     ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! feed-req)]
@@ -105,24 +79,27 @@
                (recur (<! tag-md-req))))
 
     ;; scrape subscriptions once.
-    (comment (let [subs [ ]
-                   one-by-one (chan)]
-               ;(go (>! one-by-one :go))
-               (go (doseq [[k {link :url name :name dir :dir}] feed-md
-                           ;:when (some #(= dir %) subs)
-                           ]
-                     (let [articles (chan)]
-                       ;(<! one-by-one)
-                       (println "fetching" name)
-                       (fr/read link articles)
-                       (go-loop [to-save (<! articles)]
-                                (cond
-                                  (= :done to-save)  :done ;(>! one-by-one :go)
-                                  (= :error to-save) :error ;(>! one-by-one :go) ;:error (comment (io/mv-bad-feed (get-fd-dir name)))
-                                  :else (do (io/save-article (get-fd-dir name) to-save)
-                                            (recur (<! articles))))
+    (js/setTimeout
+      ;; setInt
+      (fn []
+        (let [HD (node/require "human-date")]
+          (println :timeout :time-to-read (.toUTC HD (.now js/Date))))
+        (go (doseq [[k {link :url name :name dir :dir}] feed-md
+                    ;:when (some #(= dir %) subs)
+                    ]
+              (let [articles (chan)]
+                ;(<! one-by-one)
+                (println "fetching" name)
+                (fr/read link articles)
+                (go-loop [to-save (<! articles)]
+                         (cond
+                           (= :done to-save)  :done ;(>! one-by-one :go)
+                           (= :error to-save) :error ;(>! one-by-one :go) ;:error (comment (io/mv-bad-feed (get-fd-dir name)))
+                           :else (do (io/save-article (get-fd-dir name) to-save)
+                                     (recur (<! articles))))
 
-                                ))))))
+                         )))))
+      (* 1000 10))
     ))
 
 

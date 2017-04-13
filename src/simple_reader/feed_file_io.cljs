@@ -15,6 +15,12 @@
 
 (def config {:root ".sreader/"})
 
+(defn read-json-file [path]
+  (h/read-json (.readFileSync FS path)))
+
+(defn write-json-file [path data]
+  (.writeFileSync FS path (h/write-json data)))
+
 (defn mk-dir? [path]
   (loop [cur (first path) [p & ps] (rest path)]
     (when (not (.existsSync FS cur))
@@ -35,9 +41,10 @@
     (if (.existsSync FS fpath)
       (println :mk-feed :error name "already exists")
       (do (.mkdirSync FS fpath)
-          (.writeFileSync FS f-md (h/write-json feed-md))))))
+          (write-json-file f-md feed-md)))))
+;;
 
-(defn count-unread [feed]
+(defn count-unread [feed] ;; FIXME will change with metadata
   (let [path        (mk-root-path "feeds" feed)
         arts        (->> (.readdirSync FS path)
                          (map #(mk-root-path "feeds" feed %))
@@ -46,14 +53,13 @@
         no-md-nb    (count (filter #(not (.existsSync FS %)) arts))
         have-md-nb  (count (->> arts ;; Fixme transducers 
                                 (filter #(.existsSync FS %))
-                                (map #(.readFileSync FS %))
-                                (map #(h/read-json %))
+                                (map read-json-file)
                                 (filter #(= false (:read? %)))))]
     (+ no-md-nb have-md-nb)))
 
 (defn load-feed-md [dir]
   (let [path  (mk-root-path "feeds" dir "feed-metadata")
-        md    (h/read-json (.readFileSync FS path))]
+        md    (read-json-file path)]
     {(:name md) (merge {:dir dir :unread-count (count-unread dir)} md)}))
 
 (defn load-feeds-md []
@@ -65,8 +71,7 @@
                     article
                     &
                     [override?]]
-  (let [write-json-file #(.writeFileSync FS % (json/write (json/writer :json) %2))
-        override?       (if (nil? override?) true override?) ;; if false isn't explicitly given, default to true
+  (let [override?       (if (nil? override?) true override?) ;; if false isn't explicitly given, default to true
         art-id          (js/encodeURIComponent (:guid article))
         feed-dir        [(.homedir OS) (:root config) "feeds" feed-id art-id]
         feed-dir        (mk-dir? feed-dir)
@@ -77,13 +82,14 @@
       (println :feed feed-id :art (:title article) "already exists")
       (do (println :feed feed-id :art (:title article) "written")
           (write-json-file art-path (dissoc article :metadata))
-          (when-let [md (:metadata article)]
-            (write-json-file md-path md))
+          (let [md (:metadata article)]
+            (if md (write-json-file md-path md) ;; md was given, so we'll overwrite it
+              (let [md (read-json-file md-path)])
+                  ))
           ))))
 
 (defn read-feed [feed-id]
-  (let [read-json-file  #(json/read (json/reader :json) (.readFileSync FS %))
-        feed-dir        (.join Path (.homedir OS) (:root config) "feeds" feed-id)
+  (let [feed-dir        (.join Path (.homedir OS) (:root config) "feeds" feed-id)
         exists?         (.existsSync FS feed-dir)
         load-art        (fn [art-dir]
                           (let [art-dir (.join Path feed-dir art-dir)
@@ -105,19 +111,19 @@
   (let [md-path (.join Path (.homedir OS) (:root config) "feeds" feed article "metadata")
         exists? (.existsSync FS md-path)]
     (if exists?
-      (h/read-json (.readFileSync FS md-path))
+      (read-json-file md-path)
       {})))
 
 (defn write-article-md [feed article md]
   (let [md-path (.join Path (.homedir OS) (:root config) "feeds" feed article "metadata")]
-    (.writeFileSync FS md-path (h/write-json md))))
+    (write-json-file md-path md)))
 
 
 (defn read-tag-md [tag]
   (let [md-path (mk-root-path "tags" tag "metadata")
         exists? (.existsSync FS md-path)]
     (if exists?
-      (h/read-json (.readFileSync FS md-path))
+      (read-json-file md-path)
       {})))
 
 (defn read-tags-md []
@@ -132,10 +138,9 @@
         exists? (.existsSync FS tag-dir)]
     (when-not exists?
       (.mkdirSync FS tag-dir))
-    (.writeFileSync FS md-path (h/write-json md))))
+    (write-json-file md-path md)))
 
 (defn mv-bad-feed [feed]
   (let [opath (mk-root-path "feeds" feed)
         npath (mk-root-path "bad-feeds" feed)]
-    (.renameSync FS opath npath)
-    ))
+    (.renameSync FS opath npath)))
