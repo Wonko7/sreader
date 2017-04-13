@@ -38,7 +38,7 @@
                                              (sort-by #(-> % tags-md :position)))
                                   get-feeds-by-tag (fn [tag]
                                                      (sort-by :name (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md)))] ;; might be transformable instead
-                              (map (fn [tag] [tag (get-feeds-by-tag tag)]) tags)))  ;; sort-by
+                              (map (fn [tag] [tag (get-feeds-by-tag tag)]) tags)))
         ]
     ;; init http
     (http/init feed-req feed-ans
@@ -67,8 +67,9 @@
                               (let [unsaved (sort-by :date (filter #(not= "saved" (-> % :metadata :status)) articles))
                                     saved   (sort-by :date (filter #(= "saved" (-> % :metadata :status)) articles))]
                                 (concat unsaved saved)))
-                   f (h/write-json {:feed-data {:title feed} :metadata metadata
-                                    :articles articles})]
+                   f        (h/write-json {:feed-data {:title feed}
+                                           :metadata metadata
+                                           :articles articles})]
                (>! feed-ans f)
                (recur (<! feed-req))))
 

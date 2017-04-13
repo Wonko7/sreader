@@ -129,9 +129,7 @@
     [:div.feed
       (when-not visible-id
         (let [mk-select     (fn [value values callback]
-                              [:select
-                               {:on-change callback ;(fn [e] (reset! *ref (long (.. e -target -value))))
-                                :value value }
+                              [:select {:on-change callback :value value}
                                (for [v values]
                                  [:option { :value v } v])])
               order         (or (:order f-md) "oldest then saved")
@@ -139,7 +137,7 @@
               view          (or (:view-art-status f-md) "unread")
               view-values   ["unread" "saved" "all"]
               ]
-          [:div [:h1.feed-title ftitle]
+          [:div [:span.feed-title ftitle]
            [:span.feed-controls
             (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
             (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))
