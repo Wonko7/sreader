@@ -9,7 +9,7 @@
     [cognitect.transit :as json]
     [simple-reader.feed-file-io :as io]
     [simple-reader.http :as http]
-    [com.rpl.specter :as s :refer [collect setval select-one select transform view filterer keypath pred ALL ATOM FIRST MAP-VALS]])
+    [com.rpl.specter :as s :refer [collect setval select-one select transform view filterer keypath pred srange ALL ATOM FIRST MAP-VALS]])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
 
@@ -38,7 +38,7 @@
                                              (sort-by #(-> % tags-md :position)))
                                   get-feeds-by-tag (fn [tag]
                                                      (sort-by :name (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md)))] ;; might be transformable instead
-                              (map (fn [tag] [tag (get-feeds-by-tag tag)]) tags)))
+                              (map (fn [tag] {tag (get-feeds-by-tag tag)}) tags)))
         ]
     ;; init http
     (http/init feed-req feed-ans
@@ -73,6 +73,7 @@
                (>! feed-ans f)
                (recur (<! feed-req))))
 
+;(println :search (select [ALL (srange 1 2) ALL :name (comment (srange 1 2))] (get-feeds-by-tags)))
     ;; read subs:
     (go-loop [_ (<! subs-req)]
              (println :getting-subs)

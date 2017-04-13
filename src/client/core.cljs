@@ -3,7 +3,7 @@
             [cljs-http.client :as http]
             [cognitect.transit :as json]
             [cljs.core.async :refer [chan <! >!] :as a]
-            [com.rpl.specter :as s :refer [setval select-one select transform filterer keypath pred ALL ATOM FIRST]]
+            [com.rpl.specter :as s :refer [setval select-one select transform filterer keypath pred srange ALL ATOM FIRST MAP-VALS]]
             [simple-reader.helpers :as h]
             ;; goog
             [goog.events :as events]
@@ -63,6 +63,21 @@
               new-md      (:body (<! (http/post (str "/tag-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
           (transform [ATOM (keypath tag)] #(merge % new-md) tags-state))))
 
+(defn change-article-status-md [new-state & [gguid]]
+  (let [guid (or gguid (-> @feed-state :feed-data :selected :guid))
+        feed (-> @feed-state :feed-data :title)
+        cur-state (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
+        cur-state (or cur-state "unread")
+        new-state (cond
+                    (and gguid (not= cur-state "saved"))                  "read" ;; hackish, this is for auto-mark-read on article change
+                    (and (not= cur-state "saved") (= new-state "saved"))  "saved"
+                    (and (= cur-state "saved") (= new-state "read"))      nil
+                    (and (= cur-state "saved") (= new-state "saved"))     "unread"
+                    (and (= cur-state "unread") (= new-state "read"))     "read"
+                    (and (= cur-state "read") (= new-state "read"))       "unread")]
+    (when new-state
+      (change-article-md feed guid {:status new-state}))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
@@ -93,7 +108,8 @@
         tag-md    (rum/react tags-state)
         ]
     [:div.feeds
-     (for [[tag feeds] subs]
+     (for [v subs
+          [tag feeds] v]
        (mk-tag tag feeds))]))
 
 (rum/mount (mk-subscriptions)
@@ -101,8 +117,6 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feeds!
-
-
 
 (rum/defcs mk-article < rum/reactive
   [state
@@ -136,8 +150,7 @@
         articles    (:articles fstate)
         visible-id  (-> fstate :feed-data :selected :guid)
         visible-nb  (or (-> fstate :feed-data :selected :number) 0)
-        articles    (drop visible-nb articles)
-        root-div    (rum/dom-node state)]
+        articles    (drop visible-nb articles)]
     [:div.feed
       (when-not visible-id
         (let [mk-select     (fn [value values callback]
@@ -163,6 +176,52 @@
 (rum/mount (mk-feed)
            (. js/document (getElementById "feed")))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; search:
+
+(defonce search-state (atom {:visible false}))
+
+(defn select-search-feed []
+  (when-let [feed (first (:results @search-state))]
+    (request-feed feed))
+  (reset! search-state {:visible false}))
+
+(defn search [subs text]
+  (let [re (re-pattern (str "(?i)" text))
+        res (take 10 (filter #(re-find re %) subs))]
+    (setval [ATOM :results] res search-state)))
+
+(rum/defc mk-search < rum/reactive
+  {:did-update (fn [state]
+                 (let [comp     (:rum/react-component state)
+                       dom-node (js/ReactDOM.findDOMNode comp)]
+                   (.focus (.-firstChild dom-node))
+                   state))}
+
+  []
+  (let [s-state (rum/react search-state)
+        v?      (:visible s-state)
+        res     (:results s-state)
+        subs    (sort (select [ATOM ALL MAP-VALS ALL :name] subscriptions-state))] ;; we're caching this to avoid redoing that on each keypress.
+    (when v? 
+      [:div#search
+       [:input#search-input {:type :text
+                             :on-key-press #(let [character (.-charCode %)]
+                                              (condp = character ;; FIX "b" still caught in other listener
+                                                13 (select-search-feed)
+                                                :else-nothing
+                                                ))
+                             :on-change #(search subs (-> % .-target .-value))}]
+       (for [r res]
+         [:div.res r])
+       ])))
+
+(rum/mount (mk-search)
+           (. js/document (getElementById "search-anchor")))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; interaction:
+
 (defn change-article [nb]
   (let [cur-nb    (-> @feed-state :feed-data :selected :number)
         cur-nb    (or cur-nb -1)
@@ -177,21 +236,6 @@
     ;(ask to mark as read)
     (change-article-status-md "read" guid)
     (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
-
-(defn change-article-status-md [new-state & [gguid]]
-  (let [guid (or gguid (-> @feed-state :feed-data :selected :guid))
-        feed (-> @feed-state :feed-data :title)
-        cur-state (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
-        cur-state (or cur-state "unread")
-        new-state (cond
-                    (and gguid (not= cur-state "saved"))                  "read" ;; hackish, this is for auto-mark-read on article change
-                    (and (not= cur-state "saved") (= new-state "saved"))  "saved"
-                    (and (= cur-state "saved") (= new-state "read"))      nil
-                    (and (= cur-state "saved") (= new-state "saved"))     "unread"
-                    (and (= cur-state "unread") (= new-state "read"))     "read"
-                    (and (= cur-state "read") (= new-state "read"))       "unread")]
-    (when new-state
-      (change-article-md feed guid {:status new-state}))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; keyboard:
@@ -211,6 +255,7 @@
             "k" (change-article -1)
             "m" (change-article-status-md "read")
             "s" (change-article-status-md "saved")
+            "b" (transform [ATOM :visible] not search-state)
             :else-nothing
             )
           ))))
