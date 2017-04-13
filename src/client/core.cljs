@@ -14,14 +14,57 @@
 (enable-console-print!)
 
 
-;; FIXME tmp:
-(declare request-feed change-article-md toggle-tag-md change-feed-md)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; def state:
 
 (defonce subscriptions-state (atom {}))
 (defonce tags-state (atom {}))
+(defonce feed-state (atom {:feed-data {:title "Loading..."}}))
+(defonce article-metadata (atom {}))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
+
+(defn init-feed-metadata [feed-state]
+  (let [feed-state (setval [:feed-data :selected] nil feed-state)
+        feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
+        articles (:articles feed-state)
+        md (into {} (map (fn [{id :guid md :metadata}]
+                           {id (atom (or md {:status "unread"}))})
+                         articles))]
+    (reset! article-metadata md)
+    feed-state))
+
+(defn request-subscriptions []
+  (go (let [response    (<! (http/get "/subs/"))
+            response    (h/read-json (:body response))
+            subs-state  (:subscriptions response)
+            t-state     (:tags response)]
+        (reset! subscriptions-state subs-state)
+        (reset! tags-state t-state))))
+
+(defn request-feed [title]
+  (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
+            response    (h/read-json (:body response))]
+        (reset! feed-state (init-feed-metadata response)))))
+
+(defn change-feed-md [feed md]
+  (go (let [new-md      (:body (<! (http/post (str "/f-md/" (js/encodeURIComponent feed)) {:json-params md})))]
+        ;(transform [ATOM :metadata] #(merge % new-md) feed-state)
+        (request-feed feed))))
+
+
+(defn change-article-md [feed art-id md]
+  (go (let [new-md      (:body (<! (http/post (str "/md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
+        (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
+
+(defn toggle-tag-md [tag key]
+    (go (let [k-val       (@tags-state tag)
+              k-val       (if k-val (not (k-val key)) true)
+              new-md      (:body (<! (http/post (str "/tag-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
+          (transform [ATOM (keypath tag)] #(merge % new-md) tags-state))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
 (defn mk-subs [feeds] ;; not worth being a comp yet
    (for [{name :name unread :unread-count} feeds
@@ -48,8 +91,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feeds!
 
 
-(defonce feed-state (atom {:feed-data {:title "Loading..."}}))
-(def article-metadata (atom {}))
 
 (rum/defcs mk-article < rum/reactive
   [state
@@ -140,48 +181,6 @@
     (when new-state
       (change-article-md feed guid {:status new-state}))))
 
-(defn init-feed-metadata [feed-state]
-  (let [feed-state (setval [:feed-data :selected] nil feed-state)
-        feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
-        articles (:articles feed-state)
-        md (into {} (map (fn [{id :guid md :metadata}]
-                           {id (atom (or md {:status "unread"}))})
-                         articles))
-        ]
-    (reset! article-metadata md)
-    feed-state))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
-
-(defn request-subscriptions []
-  (go (let [response    (<! (http/get "/subs/"))
-            response    (h/read-json (:body response))
-            subs-state  (:subscriptions response)
-            t-state     (:tags response)]
-        (reset! subscriptions-state subs-state)
-        (reset! tags-state t-state))))
-
-(defn request-feed [title]
-  (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
-            response    (h/read-json (:body response))]
-        (reset! feed-state (init-feed-metadata response)))))
-
-(defn change-feed-md [feed md]
-  (go (let [new-md      (:body (<! (http/post (str "/f-md/" (js/encodeURIComponent feed)) {:json-params md})))]
-        ;(transform [ATOM :metadata] #(merge % new-md) feed-state)
-        (request-feed feed))))
-
-
-(defn change-article-md [feed art-id md]
-  (go (let [new-md      (:body (<! (http/post (str "/md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
-        (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
-
-(defn toggle-tag-md [tag key]
-    (go (let [k-val       (@tags-state tag)
-              k-val       (if k-val (not (k-val key)) true)
-              new-md      (:body (<! (http/post (str "/tag-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
-          (transform [ATOM (keypath tag)] #(merge % new-md) tags-state))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; keyboard:
 

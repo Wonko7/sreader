@@ -67,7 +67,7 @@
   (->> (mk-root-path "feeds" feed)
        (.readdirSync FS)
        (map #(read-article-md feed %))
-       (filter #(= "unread" (:satutus %)))
+       (filter #(= "unread" (:status %)))
        count))
 
 

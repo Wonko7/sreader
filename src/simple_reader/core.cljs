@@ -28,9 +28,9 @@
         subs-req    (chan)
         subs-ans    (chan)
         ;;
-        feed-md  (io/load-feeds-md)
-        get-fd-dir (fn [name]
-                     (-> name feed-md :dir))
+        feed-md     (io/load-feeds-md)
+        get-fd-dir  (fn [name]
+                      (-> name feed-md :dir))
         get-feeds-by-tags (fn [] ;; this is horrible.
                             (let [tags-md (io/read-tags-md)
                                   tags  (->> (select [MAP-VALS :tags] feed-md)
@@ -51,10 +51,11 @@
     (go-loop [{feed :feed nb :nb :as fixme} (<! feed-req)]
              (println :getting fixme (feed-md feed))
              ;(println (interpose "\n" (keys feed-md)))
-             (let [metadata (io/read-feed-md feed)
+             (let [f-dir    (get-fd-dir feed)
+                   metadata (io/read-feed-md f-dir)
                    view     (or (:view-art-status metadata) "unread")
                    order    (or (:order metadata)  "oldest then saved")
-                   articles (io/read-feed (get-fd-dir feed))
+                   articles (io/read-feed f-dir)
                    ;view-values   ["unread" "saved" "all"]
                    articles (condp = view 
                               "unread"  (filter #(not= "read" (-> % :metadata :status)) articles)
