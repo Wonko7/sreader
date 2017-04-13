@@ -62,7 +62,7 @@
 
     ;; handle article metadata changes:
     (go-loop [{{feed-id :feed article-id :article} :article-id new-md :metadata} (<! art-md-req)]
-             (println :a-md-ch)
+             (println :a-md-ch new-md)
              (let [cur-md  (io/read-article-md (get-fd-dir feed-id) article-id)
                    md       (merge cur-md new-md)]
                (io/write-article-md (get-fd-dir feed-id) article-id md)

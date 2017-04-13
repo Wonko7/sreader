@@ -53,19 +53,18 @@
 
 (rum/defcs mk-article < rum/reactive
   [state
-   {title :title date :pretty-date desc :description link :link id :guid
-    {read? :read? saved? :saved} :metadata}
+   {title :title date :pretty-date desc :description link :link id :guid}
    visible?]
   (let [a-md (@article-metadata id)
-        {read? :read? saved? :saved?} (rum/react a-md)]
-    [(cond saved? :div.article.saved
-           read? :div.article.read
-           :else :div.article)
+        {read-status :status} (rum/react a-md)
+        [art-div-style art-read-status] (condp = read-status
+                                          "saved" [:div.article.saved "saved"]
+                                          "read" [:div.article.read ""]
+                                          [:div.article "unread"])]
+    [art-div-style
      [:a.title {:href link} title]
      [:br]
-     [:div.small [:span date] [:span  {:dangerouslySetInnerHTML {:__html "&emsp;&emsp;&emsp;"}}] [:span (cond saved? "saved" 
-                                                                                                              read?  ""
-                                                                                                              :else "unread")]]
+     [:div.small [:span date] [:span  {:dangerouslySetInnerHTML {:__html "&emsp;—&emsp;"}}] [:span art-read-status]]
      [:div.content {:dangerouslySetInnerHTML {:__html desc}
                     :style {:display (if visible? "" "none")}}
       ]]))
@@ -78,6 +77,7 @@
                                     state)}
   [state]
   (let [fstate      (rum/react feed-state)
+        f-md        (-> fstate :metadata)
         ftitle      (-> fstate :feed-data :title)
         articles    (:articles fstate)
         visible-id  (-> fstate :feed-data :selected :guid)
@@ -85,7 +85,14 @@
         articles    (drop visible-nb articles)
         root-div    (rum/dom-node state)]
     [:div.feed
-      (when-not visible-id [:h1.feed-title ftitle])
+      (when-not visible-id
+        [:div [:h1.feed-title ftitle]
+         [:span.feed-controls
+          [:a {:on-click #(feed-toggle-order ftitle)
+               :href "javascript:void(0)"}
+
+           ]]
+         ])
       (for [a articles
             :let [rum-key (:guid a)]]
         (rum/with-key (mk-article a (= rum-key visible-id)) rum-key)
@@ -110,11 +117,19 @@
 
 
 
-(defn toggle-article-md [key]
+(defn change-article-status-md [new-state]
   (let [guid (-> @feed-state :feed-data :selected :guid)
         feed (-> @feed-state :feed-data :title)
-        read-state (select-one [ATOM (keypath guid) ATOM (keypath key)] article-metadata)]
-    (change-article-md feed guid {key (not read-state)})
+        cur-state (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
+        cur-state (or cur-state "unread")
+        new-state (cond
+                    (and (not= cur-state "saved") (= new-state "saved"))  "saved"
+                    (and (= cur-state "saved") (= new-state "read"))      nil
+                    (and (= cur-state "saved") (= new-state "saved"))     "unread"
+                    (and (= cur-state "unread") (= new-state "read"))     "read"
+                    (and (= cur-state "read") (= new-state "read"))       "unread")]
+    (when new-state
+      (change-article-md feed guid {:status new-state}))
     ))
 
 (defn init-feed-metadata [feed-state]
@@ -122,7 +137,7 @@
         feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
         articles (:articles feed-state)
         md (into {} (map (fn [{id :guid md :metadata}]
-                           {id (atom (or md {:saved? false :read? false}))})
+                           {id (atom (or md {:status "unread"}))})
                          articles))
         ]
     (reset! article-metadata md)
@@ -132,31 +147,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
 
 (defn request-subscriptions []
-  (go (let [json-reader (json/reader :json)
-            response (<! (http/get "/subs/"))
-            response (json/read json-reader (:body response))
-            subs-state (:subscriptions response)
-            t-state   (:tags response)
-            ]
+  (go (let [response    (<! (http/get "/subs/"))
+            response    (h/read-json (:body response))
+            subs-state  (:subscriptions response)
+            t-state     (:tags response)]
         (reset! subscriptions-state subs-state)
         (reset! tags-state t-state))))
 
 (defn request-feed [title]
-  (go (let [json-reader (json/reader :json)
-            response (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
-            response (json/read json-reader (:body response))]
+  (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
+            response    (h/read-json (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
 
 (defn change-article-md [feed art-id md]
-  (go (let [json-writer (json/writer :json)
-            json-reader (json/reader :json)
-            new-md      (:body (<! (http/post (str "/md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
+  (go (let [new-md      (:body (<! (http/post (str "/md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
         (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
 
 (defn toggle-tag-md [tag key]
-    (go (let [json-writer (json/writer :json)
-              json-reader (json/reader :json)
-              k-val       (@tags-state tag)
+    (go (let [k-val       (@tags-state tag)
               k-val       (if k-val (not (k-val key)) true)
               new-md      (:body (<! (http/post (str "/tag-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
           (transform [ATOM (keypath tag)] #(merge % new-md) tags-state))))
@@ -176,15 +184,15 @@
           (condp = character
             "j" (change-article 1)
             "k" (change-article -1)
-            "m" (toggle-article-md :read?)
-            "s" (toggle-article-md :saved?)
+            "m" (change-article-status-md "read")
+            "s" (change-article-status-md "saved")
             :else-nothing
             )
           ))))
 
 ;; init a page, fixme:
 (request-subscriptions)
-(request-feed "Slashdot")
+(request-feed "FMyLife")
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

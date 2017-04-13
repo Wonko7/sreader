@@ -67,7 +67,7 @@
   (->> (mk-root-path "feeds" feed)
        (.readdirSync FS)
        (map #(read-article-md feed %))
-       (filter #(= false (:read? %)))
+       (filter #(= "unread" (:satutus %)))
        count))
 
 
@@ -99,7 +99,7 @@
       (do ;(println :feed feed-id :art (:title article) "written")
           (write-json-file art-path (dissoc article :metadata))
           (let [new-md (:metadata article)
-                def-md {:read? false}  ;; fixme; read? false is default MD, shall be in config somewhere
+                def-md {:status "unread"}  ;; fixme; read? false is default MD, shall be in config somewhere
                 cur-md (read-article-md feed-id art-id)]
             (write-article-md feed-id art-id (merge def-md cur-md new-md)))))))
 

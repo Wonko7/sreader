@@ -30,9 +30,9 @@
                          (go (>! request-subs-ch :req)
                              (.send res (h/to-js (<! request-subs-ans))))))
     (.post app "/md/:feed/:article" (fn [req res]
-                                      (let [article-id (-> req .-params h/to-clj)
-                                            article-id (transform [:article] js/encodeURIComponent article-id)
-                                            metadata (-> req .-body h/to-clj)]
+                                      (let [article-id  (-> req .-params h/to-clj)
+                                            article-id  (transform [:article] js/encodeURIComponent article-id)
+                                            metadata    (-> req .-body h/to-clj)]
                                         (go (>! request-article-md-change-ch {:article-id article-id :metadata metadata})
                                             (.send res (h/to-js (<! request-article-md-change-ans))))))) ;; FIXME is h/to-js necessary?
     (.post app "/tag-md/:tag" (fn [req res]
