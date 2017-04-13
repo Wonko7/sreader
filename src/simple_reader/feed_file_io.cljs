@@ -15,6 +15,9 @@
 
 (def config {:root ".sreader/"})
 
+
+;;;;;;;;;; helpers:
+
 (defn read-json-file [path]
   (h/read-json (.readFileSync FS path)))
 
@@ -42,30 +45,43 @@
       (println :mk-feed :error name "already exists")
       (do (.mkdirSync FS fpath)
           (write-json-file f-md feed-md)))))
-;;
+
+
+;;;;;;;;;; article MD:
+
+(defn read-article-md [feed article]
+  (let [md-path (.join Path (.homedir OS) (:root config) "feeds" feed article "metadata")
+        exists? (.existsSync FS md-path)]
+    (if exists?
+      (read-json-file md-path)
+      {})))
+
+(defn write-article-md [feed article md]
+  (let [md-path (.join Path (.homedir OS) (:root config) "feeds" feed article "metadata")]
+    (write-json-file md-path md)))
+
+
+;;;;;;;;;; feeds:
 
 (defn count-unread [feed] ;; FIXME will change with metadata
-  (let [path        (mk-root-path "feeds" feed)
-        arts        (->> (.readdirSync FS path)
-                         (map #(mk-root-path "feeds" feed %))
-                         (filter #(.isDirectory (.statSync FS %)))
-                         (map #(.join Path % "metadata")))
-        no-md-nb    (count (filter #(not (.existsSync FS %)) arts))
-        have-md-nb  (count (->> arts ;; Fixme transducers 
-                                (filter #(.existsSync FS %))
-                                (map read-json-file)
-                                (filter #(= false (:read? %)))))]
-    (+ no-md-nb have-md-nb)))
+  (->> (mk-root-path "feeds" feed)
+       (.readdirSync FS)
+       (map #(read-article-md feed %))
+       (filter #(= false (:read? %)))
+       count))
+
 
 (defn load-feed-md [dir]
   (let [path  (mk-root-path "feeds" dir "feed-metadata")
         md    (read-json-file path)]
     {(:name md) (merge {:dir dir :unread-count (count-unread dir)} md)}))
 
+
 (defn load-feeds-md []
   (let [froot     (mk-root-path "feeds")
         feed-dirs (.readdirSync FS froot)]
     (into {} (map load-feed-md feed-dirs))))
+
 
 (defn save-article [feed-id  ;; for now feed name
                     article
@@ -80,13 +96,12 @@
         exists?         (.existsSync FS art-path)]
     (if (and exists? (not override?))
       (println :feed feed-id :art (:title article) "already exists")
-      (do (println :feed feed-id :art (:title article) "written")
+      (do ;(println :feed feed-id :art (:title article) "written")
           (write-json-file art-path (dissoc article :metadata))
-          (let [md (:metadata article)]
-            (if md (write-json-file md-path md) ;; md was given, so we'll overwrite it
-              (let [md (read-json-file md-path)])
-                  ))
-          ))))
+          (let [new-md (:metadata article)
+                def-md {:read? false}  ;; fixme; read? false is default MD, shall be in config somewhere
+                cur-md (read-article-md feed-id art-id)]
+            (write-article-md feed-id art-id (merge def-md cur-md new-md)))))))
 
 (defn read-feed [feed-id]
   (let [feed-dir        (.join Path (.homedir OS) (:root config) "feeds" feed-id)
@@ -107,17 +122,8 @@
            (map load-art)
            (filter identity)))))
 
-(defn read-article-md [feed article]
-  (let [md-path (.join Path (.homedir OS) (:root config) "feeds" feed article "metadata")
-        exists? (.existsSync FS md-path)]
-    (if exists?
-      (read-json-file md-path)
-      {})))
 
-(defn write-article-md [feed article md]
-  (let [md-path (.join Path (.homedir OS) (:root config) "feeds" feed article "metadata")]
-    (write-json-file md-path md)))
-
+;;;;;;;;;; tags:
 
 (defn read-tag-md [tag]
   (let [md-path (mk-root-path "tags" tag "metadata")

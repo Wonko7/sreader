@@ -79,8 +79,7 @@
                (recur (<! tag-md-req))))
 
     ;; scrape subscriptions once.
-    (js/setTimeout
-      ;; setInt
+    (comment (js/setTimeout
       (fn []
         (let [HD (node/require "human-date")]
           (println :timeout :time-to-read (.toUTC HD (.now js/Date))))
@@ -88,18 +87,20 @@
                     ;:when (some #(= dir %) subs)
                     ]
               (let [articles (chan)]
-                ;(<! one-by-one)
                 (println "fetching" name)
                 (fr/read link articles)
-                (go-loop [to-save (<! articles)]
+                (go-loop [to-save (<! articles) cnt 0]
                          (cond
-                           (= :done to-save)  :done ;(>! one-by-one :go)
-                           (= :error to-save) :error ;(>! one-by-one :go) ;:error (comment (io/mv-bad-feed (get-fd-dir name)))
+                           (= :done to-save)  (do
+                                                (println "Feed" name "got" cnt "articles")
+                                                :done)
+                           (= :error to-save) (do
+                                                (println "Feed" name "got error after" cnt "articles")
+                                                :error)
                            :else (do (io/save-article (get-fd-dir name) to-save)
-                                     (recur (<! articles))))
-
+                                     (recur (<! articles) (inc cnt))))
                          )))))
-      (* 1000 10))
+      (* 1000 1)))
     ))
 
 
