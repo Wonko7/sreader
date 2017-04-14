@@ -109,7 +109,7 @@
                        :href "javascript:void(0)"} (str (if @show-all " - " " + "))]
      (when v?
        (let [show-all @show-all
-             cur-fd   (-> feed-state rum/react :feed-data :title)]
+             cur-feed (-> feed-state rum/react :feed-data :title)]
          (for [f feeds]
            (rum/with-key (mk-sub f cur-feed show-all) (:name f)))))]))
 
@@ -284,6 +284,7 @@
               "v" (do (let [guid (select-one [ATOM :feed-data :selected :guid] feed-state)
                             link (select-one [ATOM :articles ALL #(= guid (:guid %)) :link] feed-state)] ;; specter is awesome, my state structure isn't.
                         (.open js/window link))) ;; FIXME: for this to work in chrome (tab instead of pop up), we'd need to .open in the listen callback, which is annoying.
+              :else-nothing
               ))))))
 
 ;; init a page, fixme:

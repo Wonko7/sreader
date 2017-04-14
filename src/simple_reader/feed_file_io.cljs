@@ -40,9 +40,8 @@
   (let [fname   (:name feed-md)
         fpath   (mk-root-path "feeds" (js/encodeURIComponent fname))
         f-md    (.join Path fpath "feed-metadata")]
-        (println f-md)
     (if (.existsSync FS fpath)
-      (println :mk-feed :error name "already exists")
+      (println "fio:" :mk-feed :error name "already exists")
       (do (.mkdirSync FS fpath)
           (write-json-file f-md feed-md)))))
 
@@ -95,9 +94,8 @@
         md-path         (.join Path feed-dir "metadata")
         exists?         (.existsSync FS art-path)]
     (if (and exists? (not override?))
-      (println :feed feed-id :art (:title article) "already exists")
-      (do ;(println :feed feed-id :art (:title article) "written")
-          (write-json-file art-path (dissoc article :metadata))
+      (println "fio: not overwriting:" :feed feed-id :art (:title article))
+      (do (write-json-file art-path (dissoc article :metadata))
           (let [new-md (:metadata article)
                 def-md {:status "unread"}  ;; fixme; read? false is default MD, shall be in config somewhere
                 cur-md (read-article-md feed-id art-id)]

@@ -42,18 +42,17 @@
                                                        (sort-by :name (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md)))] ;; might be transformable instead
                                 (map (fn [tag] {tag (get-feeds-by-tag tag)}) tags)))
         update-feeds        (fn []
-                              (println :starting-update-feeds :time-to-read (.toLocaleTimeString (new js/Date)))
+                              (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
                               (go (doseq [[k {link :url name :name dir :dir}] @feed-md
                                           ;:when (some #(= dir %) subs)
                                           ]
                                     (let [articles (chan)]
-                                      (println "fetching" name)
                                       (fr/read link articles)
                                       (go-loop [to-save (<! articles) cnt 0]
                                                (cond
-                                                 (= :done to-save)  (do (println "Feed" name "got" cnt "articles")
+                                                 (= :done to-save)  (do (println "core:" cnt "articles:" name)
                                                                         :done)
-                                                 (= :error to-save) (do (println "Feed" name "got error after" cnt "articles")
+                                                 (= :error to-save) (do (println "core: error:" cnt "articles:" name)
                                                                         :error)
                                                  :else (do (io/save-article (get-fd-dir name) to-save)
                                                            (recur (<! articles) (inc cnt))))
@@ -130,7 +129,7 @@
                (>! tag-md-ans md)
                (recur (<! tag-md-req))))
 
-    ;; scrape subscriptions once.
+    ;; scrape subscriptions
     (go (while true
           (update-feeds)
           (<! (timeout (* 1000 60 60)))))
