@@ -156,6 +156,7 @@
                                     state)}
   [state]
   (let [fstate      (rum/react feed-state)
+        subs-state  (rum/react subscriptions-state)
         f-md        (-> fstate :metadata)
         ftitle      (-> fstate :feed-data :title)
         articles    (:articles fstate)
@@ -163,20 +164,20 @@
         visible-nb  (or (-> fstate :feed-data :selected :number) 0)
         articles    (drop visible-nb articles)]
     [:div.feed
-      (when-not visible-id
-        (let [mk-select     (fn [value values callback]
-                              [:select {:on-change callback :value value}
-                               (for [v values]
-                                 [:option { :value v } v])])
-              order         (or (:order f-md) "oldest then saved")
-              order-values  ["oldest" "newest" "oldest then saved"]
-              view          (or (:view-art-status f-md) "unread")
-              view-values   ["unread" "saved" "all"]
-              ]
-          [:div [:span.feed-title ftitle]
-           [:span.feed-controls
-            (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
-            (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]]))
+     (let [mk-select     (fn [value values callback]
+                           [:select {:on-change callback :value value}
+                            (for [v values]
+                              [:option { :value v } v])])
+           order         (or (:order f-md) "oldest then saved")
+           order-values  ["oldest" "newest" "oldest then saved"]
+           view          (or (:view-art-status f-md) "unread")
+           view-values   ["unread" "saved" "all"]
+           div-title     (if visible-id :div.feed-title-small :div.feed-title)
+           ]
+       [:div.feed-title-wrapper [div-title ftitle [:span {:dangerouslySetInnerHTML {:__html "&emsp;"}} ] [:span.small (str " " (select-one [ALL MAP-VALS  ALL #(= ftitle (:name %)) :unread-count] subs-state))]]
+        [:div.feed-controls
+         (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
+         (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]])
       (for [a articles
             :let [rum-key (:guid a)]]
         (rum/with-key (mk-article a (= rum-key visible-id)) rum-key)

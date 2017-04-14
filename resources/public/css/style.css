@@ -7,7 +7,7 @@
  *
  * 002b36 dark dark blue
  * 073642 dark blue
- *  
+ *
  * */
 
 body {
@@ -52,7 +52,7 @@ body {
 .tag a:link,
 .tag a:visited,
 .tag a:hover,
-.tag a:active 
+.tag a:active
 {
 	color: #cb4b16;
 }
@@ -60,7 +60,7 @@ body {
 .tag .subscription a:link,
 .tag .subscription a:visited,
 .tag .subscription a:hover,
-.tag .subscription a:active 
+.tag .subscription a:active
 {
 	color: green;
 }
@@ -68,16 +68,16 @@ body {
 .tag a.sub-show-all:link,
 .tag a.sub-show-all:visited,
 .tag a.sub-show-all:hover,
-.tag a.sub-show-all:active 
+.tag a.sub-show-all:active
 {
 	float: right;
-	color: #93a1a1;	
+	color: #93a1a1;
 }
 
 .tag .subscription a.grey:link,
 .tag .subscription a.grey:visited,
 .tag .subscription a.grey:hover,
-.tag .subscription a.grey:active 
+.tag .subscription a.grey:active
 {
 	color: #888888;
 }
@@ -120,18 +120,30 @@ body {
 	position: absolute;*/
 }
 
-.feed-title {
+.feed-title-wrapper {
+	display: flex;
+	flex-direction: row;
+	margin-top: 1em;
+	width: 100%;
+}
+.feed-title, .feed-title-small {
+	flex: 0 0 80%;
 	font-size: 2.5em;
 	font-weight: bold;
-	color: #93a1a1;	
-	margin: 1em; 
+	color: #93a1a1;
 	/* fixme margin-top should be 1em, ignored because span.
 	 * change this to a flex */
 }
+.feed-title-small {
+	font-size: 1em;
+}
+.feed-title {
+	font-size: 2em;
+}
 
 .feed-controls {
-	float: right;
-	margin: 1em;
+	flex: auto;
+	text-align: right;
 }
 select {
 	background: #073642;
@@ -142,7 +154,7 @@ select {
 a:link,
 a:visited,
 a:hover,
-a:active 
+a:active
 {
 	color: #cb4b16;
 	text-decoration: none;
@@ -152,7 +164,7 @@ a:active
 .article.saved a.title:link,
 .article.saved a.title:visited,
 .article.saved a.title:hover,
-.article.saved a.title:active 
+.article.saved a.title:active
 {
 	font-size: 1.2em;
 	color: #dc323f;
@@ -162,7 +174,7 @@ a:active
 .article a.title:link,
 .article a.title:visited,
 .article a.title:hover,
-.article a.title:active 
+.article a.title:active
 {
 	font-size: 1.2em;
 	color: #cb4b16;
@@ -171,7 +183,7 @@ a:active
 .article.read a.title:link,
 .article.read a.title:visited,
 .article.read a.title:hover,
-.article.read a.title:active 
+.article.read a.title:active
 {
 	font-size: 1.2em;
 	color: #AAAAAA;
@@ -185,7 +197,7 @@ a:active
 	left: 0;
 	height: 100%;
 	width: 100%;
-	background: rgba(0, 0, 0, 0.5); 
+	background: rgba(0, 0, 0, 0.5);
 
 }
 #search {
