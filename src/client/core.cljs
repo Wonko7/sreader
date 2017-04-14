@@ -43,7 +43,6 @@
         (reset! tags-state t-state))))
 
 (defn request-feed [title]
-  (println :req title)
   (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
             response    (h/read-json (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
@@ -87,17 +86,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
-(rum/defc mk-subs < rum/reactive
-  [feeds show-all]
-  (let [current-feed (-> feed-state rum/react :feed-data :title)]
-    [:div (for [{name :name unread :unread-count} feeds
-                :when (or show-all (> unread 0))
-                :let [a (if (zero? unread) :a.grey :a)
-                      div (if (= current-feed name)
-                            :div.subscription.selected
-                            :div.subscription)]]
-            [div {:on-click #(request-feed name)}
-             [a {:href "javascript:void(0)"} name [:span.small " " unread]]])]))
+(rum/defc mk-sub
+  [{name :name unread :unread-count} current-feed show-all]
+  (when (or show-all (> unread 0))
+    (let [a   (if (zero? unread) :a.grey :a)
+          div (if (= current-feed name)
+                :div.subscription.selected
+                :div.subscription)]
+     [div {:on-click #(request-feed name)}
+           [a {:href "javascript:void(0)"} name [:span.small " " unread]]])))
 
 (rum/defcs mk-tag < rum/reactive
                     (rum/local false ::show-all-read)
@@ -111,7 +108,10 @@
      [:a.sub-show-all {:on-click #(swap! show-all not)
                        :href "javascript:void(0)"} (str (if @show-all " - " " + "))]
      (when v?
-       (mk-subs feeds @show-all))]))
+       (let [show-all @show-all
+             cur-fd   (-> feed-state rum/react :feed-data :title)]
+         (for [f feeds]
+           (rum/with-key (mk-sub f cur-feed show-all) (:name f)))))]))
 
 (rum/defcs mk-subscriptions < rum/reactive
   [state]
@@ -121,7 +121,7 @@
     [:div.feeds
      (for [v subs
           [tag feeds] v]
-       (mk-tag tag feeds))]))
+       (rum/with-key (mk-tag tag feeds) tag))]))
 
 (rum/mount (mk-subscriptions)
            (. js/document (getElementById "subscriptions")))
@@ -177,8 +177,7 @@
            order-values  ["oldest" "newest" "oldest then saved"]
            view          (or (:view-art-status f-md) "unread")
            view-values   ["unread" "saved" "all"]
-           div-title     (if visible-id :div.feed-title-small :div.feed-title)
-           ]
+           div-title     (if visible-id :div.feed-title-small :div.feed-title)]
        [:div.feed-title-wrapper
         [div-title ftitle
          [:span {:dangerouslySetInnerHTML {:__html "&emsp;"}} ]
@@ -198,7 +197,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; search:
 
 (defonce search-state (atom {:visible false}))
-;(defonce search-state (atom {:visible true :results ["aoeu" "aoeutnhu " "oentuhnh"]}))
 
 (defn select-search-feed []
   (when-let [feed (first (:results @search-state))]
@@ -257,8 +255,6 @@
                         (< next-nb total) next-nb
                         :else (dec total))
        guid       (:guid (nth articles next-nb))]
-    ;(setval [ATOM (keypath guid) ATOM :read?] true article-metadata)
-    ;(ask to mark as read)
     (change-article-status-md "read" guid)
     (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
 
@@ -285,10 +281,10 @@
               "r" (request-feed (select-one [ATOM :feed-data :title] feed-state))
               "R" (do (request-subscriptions)
                       (request-feed (select-one [ATOM :feed-data :title] feed-state)))
-              ;"y" (.setData (.-clipbaordData js/window) "text/plain" "lol")
-              :else-nothing
-              ))
-          ))))
+              "v" (do (let [guid (select-one [ATOM :feed-data :selected :guid] feed-state)
+                            link (select-one [ATOM :articles ALL #(= guid (:guid %)) :link] feed-state)] ;; specter is awesome, my state structure isn't.
+                        (.open js/window link))) ;; FIXME: for this to work in chrome (tab instead of pop up), we'd need to .open in the listen callback, which is annoying.
+              ))))))
 
 ;; init a page, fixme:
 (request-subscriptions)
