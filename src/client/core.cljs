@@ -130,6 +130,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feeds!
 
 (rum/defcs mk-article < rum/reactive
+                        {:did-update (fn [state]
+                                       (let [comp     (:rum/react-component state)
+                                             dom-node (js/ReactDOM.findDOMNode comp)]
+                                         (.focus dom-node))
+                                       state)}
   [state
    {title :title date :pretty-date desc :description link :link id :guid}
    visible?]
@@ -139,7 +144,7 @@
                                           "saved" [:div.article.saved "saved"]
                                           "read"  [:div.article.read ""]
                                           [:div.article "unread"])]
-    [art-div-style
+    [art-div-style {:tab-index -1 :style {:outline 0}}
      [:a.title {:href link} title]
      [:br]
      [:div.small [:span date] [:span  {:dangerouslySetInnerHTML {:__html "&emsp;—&emsp;"}}] [:span art-read-status]]
@@ -152,8 +157,8 @@
                      {:did-update (fn [state]
                                     (let [dom-node (. js/document (getElementById "feed"))]
                                       (set! (.-scrollTop dom-node) 0)
-                                      (.focus dom-node))
-                                    state)}
+                                      ;(.focus dom-node))
+                                      state))}
   [state]
   (let [fstate      (rum/react feed-state)
         subs-state  (rum/react subscriptions-state)
