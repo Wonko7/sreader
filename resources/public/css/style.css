@@ -14,27 +14,26 @@ body {
 	padding: 0;
 	margin: 0;
 	background: #073642;
+	height: 100%;
 }
 
 #page {
 	flex: 1;
 	display: flex;
-	/*overflow: hidden;*/
+	height: 100vh;
 	flex-direction: row;
 
 	min-height: 0;
 }
 #subscriptions {
-	height: 100%;
 	flex: 0 0 15%;
-	overflow: auto;
+	overflow-y: scroll;
 }
 #feed {
-	flex: auto;
-	height: 100%;
-	overflow: auto;
+	flex: 2;
 	margin-bottom: 1em;
 	padding-bottom: 1em;
+	overflow-y: scroll;
 }
 #subscriptions .feeds {
 	margin: 1em;
@@ -117,7 +116,6 @@ body {
 
 #feed .feed {
 	/* overflow-y: scroll; */
-	height: 100%;
 	width: 80%;
 	padding-right: 5%;
 	/*position: fixed;
