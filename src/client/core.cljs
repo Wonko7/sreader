@@ -76,7 +76,12 @@
                     (and (= cur-state "saved") (= new-state "saved"))     "unread"
                     (and (= cur-state "unread") (= new-state "read"))     "read"
                     (and (= cur-state "read") (= new-state "read"))       "unread")]
-    (when new-state
+    (when (not= new-state cur-state)
+      (cond
+        (or (= new-state "read") (and (= cur-state "unread") (= new-state "saved")))
+        (transform [ATOM ALL MAP-VALS  ALL #(= feed (:name %)) :unread-count] dec subscriptions-state)
+        (= new-state "unread")
+        (transform [ATOM ALL MAP-VALS  ALL #(= feed (:name %)) :unread-count] inc subscriptions-state))
       (change-article-md feed guid {:status new-state}))))
 
 
@@ -266,6 +271,7 @@
               "r" (request-feed (select-one [ATOM :feed-data :title] feed-state))
               "R" (do (request-subscriptions)
                       (request-feed (select-one [ATOM :feed-data :title] feed-state)))
+              ;"y" (.setData (.-clipbaordData js/window) "text/plain" "lol")
               :else-nothing
               ))
           ))))

@@ -59,9 +59,8 @@
                    articles (io/read-feed f-dir)
                    ;view-values   ["unread" "saved" "all"]
                    articles (condp = view 
-                              "unread"  (let [unread (filter #(not= "read" (-> % :metadata :status)) articles)
+                              "unread"  (let [unread  (filter #(not= "read" (-> % :metadata :status)) articles)
                                               unsaved (filter #(not= "saved" (-> % :metadata :status)) unread)]
-                                          (println :unread unsaved)
                                           (if (= 0 (count unsaved))
                                             articles
                                             unread))
