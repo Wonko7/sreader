@@ -75,6 +75,12 @@ body {
 {
 	color: #888888;
 }
+.tag .selected {
+	background: #073642;
+	border-width: 0px;
+	border-radius: .25em;
+
+}
 
 .article.read {
 }

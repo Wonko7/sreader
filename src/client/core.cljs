@@ -87,12 +87,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
-(defn mk-subs [feeds show-all] ;; not worth being a comp yet
-   (for [{name :name unread :unread-count} feeds
-         :when (or show-all (> unread 0))
-         :let [a (if (zero? unread) :a.grey :a)]]
-     [:div.subscription {:on-click #(request-feed name)}
-      [a {:href "javascript:void(0)"} name [:span.small " " unread]]]))
+(rum/defc mk-subs < rum/reactive
+  [feeds show-all]
+  (let [current-feed (-> feed-state rum/react :feed-data :title)]
+    [:div (for [{name :name unread :unread-count} feeds
+                :when (or show-all (> unread 0))
+                :let [a (if (zero? unread) :a.grey :a)
+                      div (if (= current-feed name)
+                            :div.subscription.selected
+                            :div.subscription)]]
+            [div {:on-click #(request-feed name)}
+             [a {:href "javascript:void(0)"} name [:span.small " " unread]]])]))
 
 (rum/defcs mk-tag < rum/reactive
                     (rum/local false ::show-all-read)
