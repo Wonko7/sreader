@@ -3,7 +3,7 @@
   (:require
     [cljs.nodejs :as node]
     [simple-reader.feedreader :as fr]
-    [cljs.core.async :refer [chan <! >!] :as a]
+    [cljs.core.async :refer [timeout chan <! >!] :as a]
     [simple-reader.helpers :as h]
     [simple-reader.render :as html]
     [cognitect.transit :as json]
@@ -28,19 +28,36 @@
         subs-req    (chan)
         subs-ans    (chan)
         ;;
-        feed-md     (atom (io/load-feeds-md))
-        get-fd-dir  (fn [name]
-                      (-> name (@feed-md) :dir))
-        get-feeds-by-tags (fn [] ;; this is horrible.
-                            (reset! feed-md (io/load-feeds-md))
-                            (let [tags-md (io/read-tags-md)
-                                  feed-md @feed-md
-                                  tags  (->> (select [MAP-VALS :tags] feed-md)
-                                             (reduce #(into %1 %2) #{})
-                                             (sort-by #(-> % tags-md :position)))
-                                  get-feeds-by-tag (fn [tag]
-                                                     (sort-by :name (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md)))] ;; might be transformable instead
-                              (map (fn [tag] {tag (get-feeds-by-tag tag)}) tags)))
+        feed-md             (atom (io/load-feeds-md))
+        get-fd-dir          (fn [name]
+                              (-> name (@feed-md) :dir))
+        get-feeds-by-tags   (fn [] ;; this is horrible.
+                              (reset! feed-md (io/load-feeds-md))
+                              (let [tags-md (io/read-tags-md)
+                                    feed-md @feed-md
+                                    tags  (->> (select [MAP-VALS :tags] feed-md)
+                                               (reduce #(into %1 %2) #{})
+                                               (sort-by #(-> % tags-md :position)))
+                                    get-feeds-by-tag (fn [tag]
+                                                       (sort-by :name (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md)))] ;; might be transformable instead
+                                (map (fn [tag] {tag (get-feeds-by-tag tag)}) tags)))
+        update-feeds        (fn []
+                              (println :starting-update-feeds :time-to-read (.toLocaleTimeString (new js/Date)))
+                              (go (doseq [[k {link :url name :name dir :dir}] @feed-md
+                                          ;:when (some #(= dir %) subs)
+                                          ]
+                                    (let [articles (chan)]
+                                      (println "fetching" name)
+                                      (fr/read link articles)
+                                      (go-loop [to-save (<! articles) cnt 0]
+                                               (cond
+                                                 (= :done to-save)  (do (println "Feed" name "got" cnt "articles")
+                                                                        :done)
+                                                 (= :error to-save) (do (println "Feed" name "got error after" cnt "articles")
+                                                                        :error)
+                                                 :else (do (io/save-article (get-fd-dir name) to-save)
+                                                           (recur (<! articles) (inc cnt))))
+                                               )))))
         ]
     ;; init http
     (http/init feed-req feed-ans
@@ -114,26 +131,9 @@
                (recur (<! tag-md-req))))
 
     ;; scrape subscriptions once.
-    (js/setInterval
-      (fn []
-        (let [HD (node/require "human-date")]
-          (println :timeout :time-to-read (.toUTC HD (.now js/Date))))
-        (go (doseq [[k {link :url name :name dir :dir}] @feed-md
-                    ;:when (some #(= dir %) subs)
-                    ]
-              (let [articles (chan)]
-                (println "fetching" name)
-                (fr/read link articles)
-                (go-loop [to-save (<! articles) cnt 0]
-                         (cond
-                           (= :done to-save)  (do (println "Feed" name "got" cnt "articles")
-                                                  :done)
-                           (= :error to-save) (do (println "Feed" name "got error after" cnt "articles")
-                                                  :error)
-                           :else (do (io/save-article (get-fd-dir name) to-save)
-                                     (recur (<! articles) (inc cnt))))
-                         )))))
-      (* 1000 60 60))
+    (go (while true
+          (update-feeds)
+          (<! (timeout (* 1000 60 60)))))
     ))
 
 

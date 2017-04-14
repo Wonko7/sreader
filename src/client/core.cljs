@@ -151,7 +151,8 @@
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
                                     (let [dom-node (. js/document (getElementById "feed"))]
-                                      (set! (.-scrollTop dom-node) 0) )
+                                      (set! (.-scrollTop dom-node) 0)
+                                      (.focus dom-node))
                                     state)}
   [state]
   (let [fstate      (rum/react feed-state)
