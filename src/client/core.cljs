@@ -76,7 +76,7 @@
                     (and (= cur-state "saved") (= new-state "saved"))     "unread"
                     (and (= cur-state "unread") (= new-state "read"))     "read"
                     (and (= cur-state "read") (= new-state "read"))       "unread")]
-    (when (not= new-state cur-state)
+    (when (and new-state (not= new-state cur-state))
       (cond
         (or (= new-state "read") (and (= cur-state "unread") (= new-state "saved")))
         (transform [ATOM ALL MAP-VALS  ALL #(= feed (:name %)) :unread-count] dec subscriptions-state)
@@ -150,8 +150,7 @@
 
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
-                                    (let [comp     (:rum/react-component state)
-                                          dom-node (js/ReactDOM.findDOMNode comp)]
+                                    (let [dom-node (. js/document (getElementById "feed"))]
                                       (set! (.-scrollTop dom-node) 0) )
                                     state)}
   [state]
@@ -174,7 +173,10 @@
            view-values   ["unread" "saved" "all"]
            div-title     (if visible-id :div.feed-title-small :div.feed-title)
            ]
-       [:div.feed-title-wrapper [div-title ftitle [:span {:dangerouslySetInnerHTML {:__html "&emsp;"}} ] [:span.small (str " " (select-one [ALL MAP-VALS  ALL #(= ftitle (:name %)) :unread-count] subs-state))]]
+       [:div.feed-title-wrapper
+        [div-title ftitle
+         [:span {:dangerouslySetInnerHTML {:__html "&emsp;"}} ]
+         [:span.small (str " " (select-one [ALL MAP-VALS  ALL #(= ftitle (:name %)) :unread-count] subs-state))]]
         [:div.feed-controls
          (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
          (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]])
