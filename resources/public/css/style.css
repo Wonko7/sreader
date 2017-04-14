@@ -26,17 +26,17 @@ body {
 	min-height: 0;
 }
 #subscriptions {
-	flex: 0 0 15%;
+	flex: 0 0 20%;
 	overflow-y: scroll;
 }
 #feed {
 	flex: 2;
-	margin-bottom: 1em;
+	padding-left: 2em;
+	padding-right: 2em;
 	padding-bottom: 1em;
 	overflow-y: scroll;
 }
 #subscriptions .feeds {
-	margin: 1em;
 	padding: 1em;
 	background: #002b36;
 	border-width: 0px;
@@ -116,8 +116,6 @@ body {
 
 #feed .feed {
 	/* overflow-y: scroll; */
-	width: 80%;
-	padding-right: 5%;
 	/*position: fixed;
 	position: absolute;*/
 }
@@ -126,7 +124,9 @@ body {
 	font-size: 2.5em;
 	font-weight: bold;
 	color: #93a1a1;	
-	margin: 1em;
+	margin: 1em; 
+	/* fixme margin-top should be 1em, ignored because span.
+	 * change this to a flex */
 }
 
 .feed-controls {
