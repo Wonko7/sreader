@@ -28,11 +28,13 @@
         subs-req    (chan)
         subs-ans    (chan)
         ;;
-        feed-md     (io/load-feeds-md)
+        feed-md     (atom (io/load-feeds-md))
         get-fd-dir  (fn [name]
-                      (-> name feed-md :dir))
+                      (-> name (@feed-md) :dir))
         get-feeds-by-tags (fn [] ;; this is horrible.
+                            (reset! feed-md (io/load-feeds-md))
                             (let [tags-md (io/read-tags-md)
+                                  feed-md @feed-md
                                   tags  (->> (select [MAP-VALS :tags] feed-md)
                                              (reduce #(into %1 %2) #{})
                                              (sort-by #(-> % tags-md :position)))
@@ -49,8 +51,7 @@
 
     ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! feed-req)]
-             (println :getting fixme (feed-md feed))
-             ;(println (interpose "\n" (keys feed-md)))
+             (println :getting fixme (@feed-md feed))
              (let [f-dir    (get-fd-dir feed)
                    metadata (io/read-feed-md f-dir)
                    view     (or (:view-art-status metadata) "unread")
@@ -73,7 +74,6 @@
                (>! feed-ans f)
                (recur (<! feed-req))))
 
-;(println :search (select [ALL (srange 1 2) ALL :name (comment (srange 1 2))] (get-feeds-by-tags)))
     ;; read subs:
     (go-loop [_ (<! subs-req)]
              (println :getting-subs)
@@ -110,11 +110,11 @@
                (recur (<! tag-md-req))))
 
     ;; scrape subscriptions once.
-    (comment (js/setTimeout
+    (js/setInterval
       (fn []
         (let [HD (node/require "human-date")]
           (println :timeout :time-to-read (.toUTC HD (.now js/Date))))
-        (go (doseq [[k {link :url name :name dir :dir}] feed-md
+        (go (doseq [[k {link :url name :name dir :dir}] @feed-md
                     ;:when (some #(= dir %) subs)
                     ]
               (let [articles (chan)]
@@ -122,16 +122,14 @@
                 (fr/read link articles)
                 (go-loop [to-save (<! articles) cnt 0]
                          (cond
-                           (= :done to-save)  (do
-                                                (println "Feed" name "got" cnt "articles")
-                                                :done)
-                           (= :error to-save) (do
-                                                (println "Feed" name "got error after" cnt "articles")
-                                                :error)
+                           (= :done to-save)  (do (println "Feed" name "got" cnt "articles")
+                                                  :done)
+                           (= :error to-save) (do (println "Feed" name "got error after" cnt "articles")
+                                                  :error)
                            :else (do (io/save-article (get-fd-dir name) to-save)
                                      (recur (<! articles) (inc cnt))))
                          )))))
-      (* 1000 1)))
+      (* 1000 60 60))
     ))
 
 

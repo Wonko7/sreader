@@ -43,6 +43,7 @@
         (reset! tags-state t-state))))
 
 (defn request-feed [title]
+  (println :req title)
   (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
             response    (h/read-json (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
@@ -165,9 +166,7 @@
           [:div [:span.feed-title ftitle]
            [:span.feed-controls
             (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
-            (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))
-            ]
-         ]))
+            (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]]))
       (for [a articles
             :let [rum-key (:guid a)]]
         (rum/with-key (mk-article a (= rum-key visible-id)) rum-key)
@@ -195,17 +194,16 @@
                 (filter first)
                 (sort-by #(-> % first count))
                 (take 10)
-                (map second))
-        ]
+                (map second))]
     (println (apply str (interpose ".*?" text)))
     (setval [ATOM :results] res search-state)))
 
 (rum/defc mk-search < rum/reactive
-  {:did-update (fn [state]
-                 (let [comp     (:rum/react-component state)
-                       dom-node (js/ReactDOM.findDOMNode comp)]
-                   (-> dom-node .-firstChild .-firstChild .focus)
-                   state))}
+                      {:did-update (fn [state]
+                                     (let [comp     (:rum/react-component state)
+                                           dom-node (js/ReactDOM.findDOMNode comp)]
+                                       (-> dom-node .-firstChild .-firstChild .focus)
+                                       state))}
   []
   (let [s-state (rum/react search-state)
         v?        (:visible s-state)
@@ -265,6 +263,9 @@
               "m" (change-article-status-md "read")
               "s" (change-article-status-md "saved")
               "b" (transform [ATOM :visible] not search-state)
+              "r" (request-feed (select-one [ATOM :feed-data :title] feed-state))
+              "R" (do (request-subscriptions)
+                      (request-feed (select-one [ATOM :feed-data :title] feed-state)))
               :else-nothing
               ))
           ))))
