@@ -17,15 +17,20 @@ body {
 }
 
 #page {
+	flex: 1;
 	display: flex;
+	overflow: hidden;
+
 	height: 100%;
 }
 #subscriptions {
 	height: 100%;
 	flex: 0 0 15%;
+	overflow: auto;
 }
 #feed {
 	flex: auto;
+	overflow: auto;
 	margin-bottom: 1em;
 	padding-bottom: 1em;
 }
@@ -109,12 +114,12 @@ body {
 }
 
 #feed .feed {
-	overflow-y: scroll;
+	/* overflow-y: scroll; */
 	height: 100%;
 	width: 80%;
 	padding-right: 5%;
-	position: fixed;
-	/*position: absolute;*/
+	/*position: fixed;
+	position: absolute;*/
 }
 
 .feed-title {
