@@ -113,6 +113,21 @@ body {
 	padding: 1em;
 	margin-top: 1em;
 }
+.article-info {
+	display: flex;
+/*
+	align-items: center;
+	align-items: baseline;
+	**/
+}
+.date {
+	flex: auto;
+}
+.article-status {
+	margin-left: 1em;
+	flex: auto;
+}
+
 .article .content {
 	width: 75%;
 	text-align: justify;

@@ -172,7 +172,7 @@
                     :on-click (when-not visible? #(change-article 0 id))}
      [:a.title {:href (if visible? link "javascript:void(0)")} title]
      [:br]
-     [:div.small [:span date] [:span  {:dangerouslySetInnerHTML {:__html "&emsp;—&emsp;"}}] [:span art-read-status]]
+     [:div.article-info.small [:div.date date] [:div.artical-satus art-read-status]]
      [:div.content {:dangerouslySetInnerHTML {:__html desc}
                     :style {:display (if visible? "" "none")}}
       ]]))
