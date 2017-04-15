@@ -160,8 +160,8 @@ body {
 	align-items: baseline;
 	/*  **/
 }
-.feed-title-only {
-	flex: auto;
+.title-only {
+	flex: 0 1 auto;
 }
 .feed-count {
 	margin-left: 1em;
