@@ -63,10 +63,10 @@
         (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
 
 (defn toggle-tag-md [tag key]
-    (go (let [k-val       (select-one [ATOM (keypath tag) ATOM (keypath key)] tags-metadata)
-              k-val       (if k-val (not (k-val key)) true)
-              new-md      (:body (<! (http/post (str "/tag-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
-          (transform [ATOM (keypath tag) ATOM] #(merge % new-md) tags-metadata))))
+  (go (let [k-val       (select-one [ATOM (keypath tag) ATOM (keypath key)] tags-metadata)
+            k-val       (if k-val (not k-val) true)
+            new-md      (:body (<! (http/post (str "/tag-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
+        (transform [ATOM (keypath tag) ATOM] #(merge % new-md) tags-metadata))))
 
 (defn change-article-status-md [new-state & [gguid]]
   (let [guid (or gguid (-> @feed-state :feed-data :selected :guid))
@@ -83,9 +83,9 @@
     (when (and new-state (not= new-state cur-state))
       (cond
         (or (= new-state "read") (and (= cur-state "unread") (= new-state "saved")))
-        (transform [ATOM ALL MAP-VALS  ALL #(= feed (:name %)) :unread-count] dec subscriptions-state)
+        (transform [ATOM (keypath feed) ATOM :unread-count] dec subscriptions-state)
         (= new-state "unread")
-        (transform [ATOM ALL MAP-VALS  ALL #(= feed (:name %)) :unread-count] inc subscriptions-state))
+        (transform [ATOM (keypath feed) ATOM :unread-count] inc subscriptions-state))
       (change-article-md feed guid {:status new-state}))))
 
 
@@ -231,13 +231,14 @@
                                      "Auto focus on input"
                                      (let [comp     (:rum/react-component state)
                                            dom-node (js/ReactDOM.findDOMNode comp)]
-                                       (-> dom-node .-firstChild .-firstChild .focus)
+                                       (when dom-node
+                                         (-> dom-node .-firstChild .-firstChild .focus))
                                        state))}
   []
   (let [s-state   (rum/react search-state)
         v?        (:visible s-state)
         [r & res] (:results s-state)
-        subs      (sort (select [ATOM ALL MAP-VALS ALL :name] subscriptions-state))] ;; we're caching this to avoid redoing that on each keypress.
+        subs      (sort (select [ATOM ALL FIRST] subscriptions-state))] ;; we're caching this to avoid redoing that on each keypress.
     (when v? 
       [:div#search-wrapper
        [:div#search
@@ -248,8 +249,7 @@
                                                (when (:visible @search-state)
                                                  (comment (.stopPropagation %))))
                               :on-change #(search subs (-> % .-target .-value))}]
-        (concat [[:div.first-result r]] (map #(vector :div %) res))
-        ]])))
+        [:div (concat [[:div.first-result r]] (map #(vector :div %) res))]]])))
 
 (rum/mount (mk-search)
            (. js/document (getElementById "search-anchor")))
