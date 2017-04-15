@@ -53,6 +53,7 @@ body {
 }
 .sub-count {
 	flex: 2;
+	padding-left: .9em;
 }
 .tag {
 	color: green;
@@ -139,14 +140,17 @@ body {
 	font-size: 2.5em;
 	font-weight: bold;
 	color: #93a1a1;
-	/* fixme margin-top should be 1em, ignored because span.
-	 * change this to a flex */
+	display: flex;
+	align-items: center;
+	/* align-items: baseline;
+	 **/
 }
 .feed-title-small {
 	font-size: 1em;
 }
 .feed-title {
 	font-size: 2em;
+
 }
 
 .feed-controls {
@@ -239,7 +243,3 @@ a:active
 .left {
 	float: right;
 }
-/*
-	-moz-appearance: scrollbarbutton-down;
-	-moz-appearance: scrollbarbutton-up;
-*/

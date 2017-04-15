@@ -89,6 +89,24 @@
       (change-article-md feed guid {:status new-state}))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; interaction:
+
+(defn change-article [nb & [guid]]
+  "If guid is given, nb is ignored, guid is selected.
+  Otherwise next article is nb relative to current article."
+  (let [cur-nb    (-> @feed-state :feed-data :selected :number)
+        cur-nb    (or cur-nb -1)
+        articles  (-> @feed-state :articles)
+        total     (count articles)
+        next-nb   (+ nb cur-nb)
+        next-nb   (cond (< next-nb 0) 0
+                        (< next-nb total) next-nb
+                        :else (dec total))
+       guid       (or guid (:guid (nth articles next-nb)))]
+    (change-article-status-md "read" guid)
+    (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
 (rum/defc mk-sub < rum/reactive
@@ -150,8 +168,9 @@
                                           "saved" [:div.article.saved "saved"]
                                           "read"  [:div.article.read ""]
                                           [:div.article "unread"])]
-    [art-div-style {:tab-index -1 :style {:outline 0}}
-     [:a.title {:href link} title]
+    [art-div-style {:tab-index -1 :style {:outline 0}
+                    :on-click (when-not visible? #(change-article 0 id))}
+     [:a.title {:href (if visible? link "javascript:void(0)")} title]
      [:br]
      [:div.small [:span date] [:span  {:dangerouslySetInnerHTML {:__html "&emsp;—&emsp;"}}] [:span art-read-status]]
      [:div.content {:dangerouslySetInnerHTML {:__html desc}
@@ -254,22 +273,6 @@
 
 (rum/mount (mk-search)
            (. js/document (getElementById "search-anchor")))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; interaction:
-
-(defn change-article [nb]
-  (let [cur-nb    (-> @feed-state :feed-data :selected :number)
-        cur-nb    (or cur-nb -1)
-        articles  (-> @feed-state :articles)
-        total     (count articles)
-        next-nb   (+ nb cur-nb)
-        next-nb   (cond (< next-nb 0) 0
-                        (< next-nb total) next-nb
-                        :else (dec total))
-       guid       (:guid (nth articles next-nb))]
-    (change-article-status-md "read" guid)
-    (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; keyboard:
