@@ -31,16 +31,20 @@
         feed-md             (atom (io/load-feeds-md))
         get-fd-dir          (fn [name]
                               (-> name (@feed-md) :dir))
-        get-feeds-by-tags   (fn [] ;; this is horrible.
+        get-subs-by-tags    (fn []
                               (reset! feed-md (io/load-feeds-md))
-                              (let [tags-md (io/read-tags-md)
-                                    feed-md @feed-md
-                                    tags  (->> (select [MAP-VALS :tags] feed-md)
-                                               (reduce #(into %1 %2) #{})
-                                               (sort-by #(-> % tags-md :position)))
+                              (let [tags-md   (io/read-tags-md)
+                                    tag-list  (sort-by #(-> % tags-md :position) (keys tags-md))
                                     get-feeds-by-tag (fn [tag]
-                                                       (sort-by :name (select [MAP-VALS (fn [v] (some #(= tag %) (:tags v)))] feed-md)))] ;; might be transformable instead
-                                (map (fn [tag] {tag (get-feeds-by-tag tag)}) tags)))
+                                                       (sort-by :name (select [ATOM MAP-VALS (fn [v] (some #(= tag %) (:tags v))) :name] feed-md)))
+                                    res  {:tag-order tag-list
+                                          :tag-metadata tags-md
+                                          :tag-content (into {} (map (fn [tag] {tag (get-feeds-by-tag tag)}) tag-list))
+                                          :subscriptions @feed-md
+                                          }]
+                                (println res)
+                                res
+                                ))
         update-feeds        (fn []
                               (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
                               (go (doseq [[k {link :url name :name dir :dir}] @feed-md]
@@ -56,6 +60,7 @@
                                                            (recur (<! articles) (inc cnt))))
                                                )))))
         ]
+    (get-subs-by-tags)
     ;; init http
     (http/init feed-req feed-ans
                subs-req subs-ans
@@ -95,8 +100,7 @@
     ;; read subs:
     (go-loop [_ (<! subs-req)]
              (println :getting-subs)
-             (>! subs-ans (h/write-json {:subscriptions (get-feeds-by-tags)
-                                         :tags (io/read-tags-md)}))
+             (>! subs-ans (h/write-json (get-subs-by-tags)))
              (recur (<! subs-req)))
 
 
@@ -129,7 +133,7 @@
 
     ;; scrape subscriptions
     (go (while true
-          (update-feeds)
+          (comment (update-feeds))
           (<! (timeout (* 1000 60 60)))))
     ))
 

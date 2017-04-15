@@ -3,7 +3,7 @@
             [cljs-http.client :as http]
             [cognitect.transit :as json]
             [cljs.core.async :refer [chan <! >!] :as a]
-            [com.rpl.specter :as s :refer [setval select-one select transform filterer keypath pred srange ALL ATOM FIRST MAP-VALS]]
+            [com.rpl.specter :as s :refer [setval select-one select transform filterer keypath pred submap srange ALL ATOM FIRST MAP-VALS]]
             [simple-reader.helpers :as h]
             ;; goog
             [goog.events :as events]
@@ -18,6 +18,7 @@
 
 (defonce subscriptions-state (atom {}))
 (defonce tags-state (atom {}))
+(defonce tags-metadata (atom {}))
 (defonce feed-state (atom {:feed-data {:title "Loading..."}}))
 (defonce article-metadata (atom {}))
 
@@ -37,10 +38,14 @@
 (defn request-subscriptions []
   (go (let [response    (<! (http/get "/subs/"))
             response    (h/read-json (:body response))
-            subs-state  (:subscriptions response)
-            t-state     (:tags response)]
+            mk-atom-dic #(into {} (for [[k md] %]
+                                    {k (atom md)}))
+            subs-state  (mk-atom-dic (:subscriptions response))
+            t-md        (mk-atom-dic (:tag-metadata response))
+            t-state     (select-one [(submap [:tag-order :tag-content])] response)]
         (reset! subscriptions-state subs-state)
-        (reset! tags-state t-state))))
+        (reset! tags-state t-state)
+        (reset! tags-metadata t-md))))
 
 (defn request-feed [title]
   (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
@@ -58,10 +63,10 @@
         (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
 
 (defn toggle-tag-md [tag key]
-    (go (let [k-val       (@tags-state tag)
+    (go (let [k-val       (select-one [ATOM (keypath tag) ATOM (keypath key)] tags-metadata)
               k-val       (if k-val (not (k-val key)) true)
               new-md      (:body (<! (http/post (str "/tag-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
-          (transform [ATOM (keypath tag)] #(merge % new-md) tags-state))))
+          (transform [ATOM (keypath tag) ATOM] #(merge % new-md) tags-metadata))))
 
 (defn change-article-status-md [new-state & [gguid]]
   (let [guid (or gguid (-> @feed-state :feed-data :selected :guid))
@@ -86,21 +91,23 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
-(rum/defc mk-sub
-  [{name :name unread :unread-count} current-feed show-all]
-  (when (or show-all (> unread 0))
-    (let [a   (if (zero? unread) :a.grey :a)
-          div (if (= current-feed name)
-                :div.subscription.selected
-                :div.subscription)]
-     [div {:on-click #(request-feed name)}
-           [a {:href "javascript:void(0)"} name [:span.small.left " " unread]]])))
+(rum/defc mk-sub < rum/reactive
+  [feed show-all]
+    (let [selected-feed (-> feed-state rum/react :feed-data :title)
+          unread        (:unread-count (rum/react (@subscriptions-state feed)))
+          a             (if (zero? unread) :a.grey :a)
+          div           (if (= selected-feed feed)
+                          :div.subscription.selected
+                          :div.subscription)]
+      (when (or show-all (> unread 0))
+        [div {:on-click #(request-feed feed)}
+         [a {:href "javascript:void(0)"} feed [:span.small.left " " unread]]])))
 
 (rum/defcs mk-tag < rum/reactive
                     (rum/local false ::show-all-read)
   [state tag feeds]
-  (let [tag-md    (rum/react tags-state)
-        v?        (-> tag tag-md :visible?)
+  (let [tag-md    (rum/react (@tags-metadata tag))
+        v?        (:visible? tag-md)
         show-all  (::show-all-read state)]
     [:div.tag
      [:a {:on-click #(toggle-tag-md tag :visible?)
@@ -108,19 +115,16 @@
      [:a.sub-show-all {:on-click #(swap! show-all not)
                        :href "javascript:void(0)"} (str (if @show-all " - " " + "))]
      (when v?
-       (let [show-all @show-all
-             cur-feed (-> feed-state rum/react :feed-data :title)]
-         (for [f feeds]
-           (rum/with-key (mk-sub f cur-feed show-all) (:name f)))))]))
+       (for [f feeds]
+         (rum/with-key (mk-sub f @show-all) f)))]))
 
 (rum/defcs mk-subscriptions < rum/reactive
   [state]
-  (let [subs      (rum/react subscriptions-state)
-        tag-md    (rum/react tags-state)
-        ]
+  (let [t-state   (rum/react tags-state)]
     [:div.feeds
-     (for [v subs
-          [tag feeds] v]
+     (for [tag (:tag-order t-state)
+           :let [feeds ((:tag-content t-state) tag)]
+           :when feeds] ;; weed out empty tags
        (rum/with-key (mk-tag tag feeds) tag))]))
 
 (rum/mount (mk-subscriptions)
@@ -131,6 +135,7 @@
 
 (rum/defcs mk-article < rum/reactive
                         {:did-update (fn [state]
+                                       "focus on current article on article/feed change -> kb scrolling"
                                        (let [comp     (:rum/react-component state)
                                              dom-node (js/ReactDOM.findDOMNode comp)]
                                          (.focus dom-node))
@@ -152,43 +157,51 @@
                     :style {:display (if visible? "" "none")}}
       ]]))
 
+(rum/defc mk-feed-title < rum/reactive
+  [ftitle visible-id]
+  (let [f-md          (-> feed-state rum/react :metadata)
+        feed-exists?  (@subscriptions-state ftitle)
+        sub-state     (if feed-exists?
+                        (rum/react feed-exists?)
+                        {:unread-count ""})
+        order         (or (:order f-md) "oldest then saved")
+        order-values  ["oldest" "newest" "oldest then saved"]
+        view          (or (:view-art-status f-md) "unread")
+        view-values   ["unread" "saved" "all"]
+        div-title     (if visible-id :div.feed-title-small :div.feed-title)
+        mk-select     (fn [value values callback]
+                        [:select {:on-change callback :value value}
+                         (for [v values]
+                           [:option { :value v } v])])]
+    [:div.feed-title-wrapper
+     [div-title ftitle
+      [:span {:dangerouslySetInnerHTML {:__html "&emsp;"}} ]
+      [:span.small (str " " (:unread-count sub-state))]] ;; FIXME this has to die.
+     [:div.feed-controls
+      (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
+      (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]]    
+    ))
 
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
+                                    "Go to top of article on article change"
                                     (let [dom-node (. js/document (getElementById "feed"))]
                                       (set! (.-scrollTop dom-node) 0)
                                       ;(.focus dom-node))
                                       state))}
   [state]
   (let [fstate      (rum/react feed-state)
-        subs-state  (rum/react subscriptions-state)
-        f-md        (-> fstate :metadata)
         ftitle      (-> fstate :feed-data :title)
         articles    (:articles fstate)
         visible-id  (-> fstate :feed-data :selected :guid)
         visible-nb  (or (-> fstate :feed-data :selected :number) 0)
         articles    (drop visible-nb articles)]
     [:div.feed
-     (let [mk-select     (fn [value values callback]
-                           [:select {:on-change callback :value value}
-                            (for [v values]
-                              [:option { :value v } v])])
-           order         (or (:order f-md) "oldest then saved")
-           order-values  ["oldest" "newest" "oldest then saved"]
-           view          (or (:view-art-status f-md) "unread")
-           view-values   ["unread" "saved" "all"]
-           div-title     (if visible-id :div.feed-title-small :div.feed-title)]
-       [:div.feed-title-wrapper
-        [div-title ftitle
-         [:span {:dangerouslySetInnerHTML {:__html "&emsp;"}} ]
-         [:span.small (str " " (select-one [ALL MAP-VALS  ALL #(= ftitle (:name %)) :unread-count] subs-state))]] ;; FIXME this has to die.
-        [:div.feed-controls
-         (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
-         (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]])
-      (for [a articles
-            :let [rum-key (:guid a)]]
-        (rum/with-key (mk-article a (= rum-key visible-id)) rum-key)
-        )]))
+     (mk-feed-title ftitle visible-id)
+     (for [a articles
+           :let [rum-key (:guid a)]]
+       (rum/with-key (mk-article a (= rum-key visible-id)) rum-key)
+       )]))
 
 (rum/mount (mk-feed)
            (. js/document (getElementById "feed")))

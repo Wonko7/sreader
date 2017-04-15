@@ -18,7 +18,7 @@
   :plugins [[lein-figwheel "0.5.8"]
             [lein-cljsbuild "1.1.4" :exclusions [[org.clojure/clojure]]]]
 
-  :source-paths ["src" "src_client"]
+  :source-paths ["src"]
 
   ;:clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 
