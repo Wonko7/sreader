@@ -3,7 +3,7 @@
             [cljs-http.client :as http]
             [cognitect.transit :as json]
             [cljs.core.async :refer [chan <! >!] :as a]
-            [com.rpl.specter :as s :refer [setval select-one select transform filterer keypath pred submap srange ALL ATOM FIRST MAP-VALS]]
+            [com.rpl.specter :as s :refer [setval select-one select transform multi-transform multi-path filterer keypath pred submap terminal-val terminal srange ALL ATOM FIRST MAP-VALS]]
             [simple-reader.helpers :as h]
             ;; goog
             [goog.events :as events]
@@ -199,7 +199,7 @@
       [:span.small (str " " (:unread-count sub-state))]] ;; FIXME this has to die.
      [:div.feed-controls
       (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
-      (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]]    
+      (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]]
     ))
 
 (rum/defcs mk-feed < rum/reactive
@@ -232,44 +232,58 @@
 (defonce search-state (atom {:visible false}))
 
 (defn select-search-feed []
-  (when-let [feed (first (:results @search-state))]
+  (when-let [feed (nth (:results @search-state) (:nth @search-state))]
     (request-feed feed))
   (reset! search-state {:visible false}))
 
-(defn search [subs text]
-  (let [re (re-pattern (str "(?i)" (apply str (interpose ".*?" text))))
-        res (->> subs
-                (map #(vector (re-find re %) %))
-                (filter first)
-                (sort-by #(-> % first count))
-                (take 10)
-                (map second))]
-    (setval [ATOM :results] res search-state)))
+(defn search [text]
+  (let [subs  (sort (select [ATOM ALL FIRST] subscriptions-state)) ;; FIXME no we're not.
+        re    (re-pattern (str "(?i)" (apply str (interpose ".*?" text))))
+        res   (->> subs
+                   (map #(vector (re-find re %) %))
+                   (filter first)
+                   (sort-by #(-> % first count))
+                   (take 10)
+                   (map second))]
+    (multi-transform [ATOM (multi-path [:results (terminal-val res)]
+                                       [:nth (terminal-val 0)])]
+                     search-state)))
 
-(rum/defc mk-search < rum/reactive
+(rum/defcs mk-search < rum/reactive
                       {:did-update (fn [state]
                                      "Auto focus on input"
                                      (let [comp     (:rum/react-component state)
                                            dom-node (js/ReactDOM.findDOMNode comp)]
-                                       (when dom-node
+                                       (when dom-node ;; not present when search closes
                                          (-> dom-node .-firstChild .-firstChild .focus))
                                        state))}
-  []
+  [state]
   (let [s-state   (rum/react search-state)
         v?        (:visible s-state)
-        [r & res] (:results s-state)
-        subs      (sort (select [ATOM ALL FIRST] subscriptions-state))] ;; we're caching this to avoid redoing that on each keypress.
-    (when v? 
+        res       (:results s-state)
+        nth       (:nth s-state)
+        max       (dec (count (select-one [ATOM :results] search-state)))
+        res       (map #(vector :div %) res)
+        res       (when (> max -1) (setval [(srange nth (inc nth)) FIRST FIRST] :div.first-result res))]
+    (when v?
       [:div#search-wrapper
        [:div#search
         [:input#search-input {:type :text
-                              :on-key-press #(let [character (.-charCode %)]
-                                               (when (= character 13)
-                                                 (select-search-feed))
-                                               (when (:visible @search-state)
-                                                 (comment (.stopPropagation %))))
-                              :on-change #(search subs (-> % .-target .-value))}]
-        [:div (concat [[:div.first-result r]] (map #(vector :div %) res))]]])))
+                              :on-key-down #(let [kcode     (.-keyCode %)
+                                                  s-inc     (fn [i] (let [n (inc i)]
+                                                                      (if (>= n max) max n)))
+                                                  s-dec     (fn [i] (let [n (dec i)]
+                                                                      (if (>= n 0) n 0)))]
+                                              (cond (= 38 kcode) (transform [ATOM :nth] s-dec search-state)
+                                                    (= 40 kcode) (transform [ATOM :nth] s-inc search-state)
+                                                    (= 13 kcode) (select-search-feed))
+                                              (when (:visible @search-state)
+                                                (comment
+                                                  (.preventDefault %)
+                                                  (.stopPropagation %)))
+                                              false)
+                              :on-change #(search (-> % .-target .-value))}]
+        [:div (vec res)]]])))
 
 (rum/mount (mk-search)
            (. js/document (getElementById "search-anchor")))
