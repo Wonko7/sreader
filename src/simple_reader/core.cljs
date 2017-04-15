@@ -36,15 +36,11 @@
                               (let [tags-md   (io/read-tags-md)
                                     tag-list  (sort-by #(-> % tags-md :position) (keys tags-md))
                                     get-feeds-by-tag (fn [tag]
-                                                       (sort-by :name (select [ATOM MAP-VALS (fn [v] (some #(= tag %) (:tags v))) :name] feed-md)))
-                                    res  {:tag-order tag-list
-                                          :tag-metadata tags-md
-                                          :tag-content (into {} (map (fn [tag] {tag (get-feeds-by-tag tag)}) tag-list))
-                                          :subscriptions @feed-md
-                                          }]
-                                (println res)
-                                res
-                                ))
+                                                       (sort-by :name (select [ATOM MAP-VALS (fn [v] (some #(= tag %) (:tags v))) :name] feed-md)))]
+                                {:tag-order tag-list
+                                 :tag-metadata tags-md
+                                 :tag-content (into {} (map (fn [tag] {tag (get-feeds-by-tag tag)}) tag-list))
+                                 :subscriptions @feed-md}))
         update-feeds        (fn []
                               (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
                               (go (doseq [[k {link :url name :name dir :dir}] @feed-md]
@@ -133,7 +129,7 @@
 
     ;; scrape subscriptions
     (go (while true
-          (comment (update-feeds))
+          (update-feeds)
           (<! (timeout (* 1000 60 60)))))
     ))
 
