@@ -85,8 +85,6 @@
     (.setHeader req "accept" "text/html,application/xhtml+xml")
     (.on req "error" #(go (println "feed-parser: error requesting" feed %)
                           (>! result-chan :error)))
-    ;(.on req "end" #(go (println :feed-read-end)
-    ;                    (>! result-chan :done)))
     (.on req "response" (fn [result]
                           (when (not= 200 (.-statusCode result))
                             (println "feed-reader: HTTP: request: bad status code:" (.-statusCode result) "on:" feed)
@@ -97,7 +95,6 @@
                                 res (maybe-decompress result encoding feed) ;;FIXME feed only for debug.
                                 res (maybe-translate res charset feed)]
                             (.pipe res fp))))
-
     (.on fp "readable" #(this-as this
                                  (go-loop [post (.read this)]
                                           (when post 

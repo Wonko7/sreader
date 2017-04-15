@@ -43,9 +43,7 @@
                                 (map (fn [tag] {tag (get-feeds-by-tag tag)}) tags)))
         update-feeds        (fn []
                               (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
-                              (go (doseq [[k {link :url name :name dir :dir}] @feed-md
-                                          ;:when (some #(= dir %) subs)
-                                          ]
+                              (go (doseq [[k {link :url name :name dir :dir}] @feed-md]
                                     (let [articles (chan)]
                                       (fr/read link articles)
                                       (go-loop [to-save (<! articles) cnt 0]

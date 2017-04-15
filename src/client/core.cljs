@@ -94,7 +94,7 @@
                 :div.subscription.selected
                 :div.subscription)]
      [div {:on-click #(request-feed name)}
-           [a {:href "javascript:void(0)"} name [:span.small " " unread]]])))
+           [a {:href "javascript:void(0)"} name [:span.small.left " " unread]]])))
 
 (rum/defcs mk-tag < rum/reactive
                     (rum/local false ::show-all-read)
@@ -181,7 +181,7 @@
        [:div.feed-title-wrapper
         [div-title ftitle
          [:span {:dangerouslySetInnerHTML {:__html "&emsp;"}} ]
-         [:span.small (str " " (select-one [ALL MAP-VALS  ALL #(= ftitle (:name %)) :unread-count] subs-state))]]
+         [:span.small (str " " (select-one [ALL MAP-VALS  ALL #(= ftitle (:name %)) :unread-count] subs-state))]] ;; FIXME this has to die.
         [:div.feed-controls
          (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
          (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]])
@@ -205,24 +205,23 @@
 
 (defn search [subs text]
   (let [re (re-pattern (str "(?i)" (apply str (interpose ".*?" text))))
-        ;res (take 10 (filter #(re-find re %) subs))
         res (->> subs
                 (map #(vector (re-find re %) %))
                 (filter first)
                 (sort-by #(-> % first count))
                 (take 10)
                 (map second))]
-    (println (apply str (interpose ".*?" text)))
     (setval [ATOM :results] res search-state)))
 
 (rum/defc mk-search < rum/reactive
                       {:did-update (fn [state]
+                                     "Auto focus on input"
                                      (let [comp     (:rum/react-component state)
                                            dom-node (js/ReactDOM.findDOMNode comp)]
                                        (-> dom-node .-firstChild .-firstChild .focus)
                                        state))}
   []
-  (let [s-state (rum/react search-state)
+  (let [s-state   (rum/react search-state)
         v?        (:visible s-state)
         [r & res] (:results s-state)
         subs      (sort (select [ATOM ALL MAP-VALS ALL :name] subscriptions-state))] ;; we're caching this to avoid redoing that on each keypress.

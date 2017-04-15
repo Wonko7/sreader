@@ -228,6 +228,9 @@ a:active
 	background: #93a1a1;
 	background: #AAAAAA;
 }
+.left {
+	float: right;
+}
 /*
 	-moz-appearance: scrollbarbutton-down;
 	-moz-appearance: scrollbarbutton-up;
