@@ -194,9 +194,9 @@
                          (for [v values]
                            [:option { :value v } v])])]
     [:div.feed-title-wrapper
-     [div-title ftitle
-      [:span {:dangerouslySetInnerHTML {:__html "&emsp;"}} ]
-      [:span.small (str " " (:unread-count sub-state))]] ;; FIXME this has to die.
+     [div-title
+      [:div.title-only ftitle]
+      [:div.feed-count.small (:unread-count sub-state)]]
      [:div.feed-controls
       (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
       (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]]

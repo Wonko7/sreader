@@ -142,8 +142,15 @@ body {
 	color: #93a1a1;
 	display: flex;
 	align-items: center;
-	/* align-items: baseline;
-	 **/
+	align-items: baseline;
+	/*  **/
+}
+.feed-title-only {
+	flex: auto;
+}
+.feed-count {
+	margin-left: 1em;
+	flex: auto;
 }
 .feed-title-small {
 	font-size: 1em;
