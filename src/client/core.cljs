@@ -101,7 +101,8 @@
                           :div.subscription)]
       (when (or show-all (> unread 0))
         [div {:on-click #(request-feed feed)}
-         [a {:href "javascript:void(0)"} feed [:span.small.left " " unread]]])))
+         [:div.sub-title [a {:href "javascript:void(0)"} feed]]
+         [:div.sub-count.small unread]])))
 
 (rum/defcs mk-tag < rum/reactive
                     (rum/local false ::show-all-read)

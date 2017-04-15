@@ -43,8 +43,16 @@ body {
 	border-radius: .5em;
 }
 .subscription {
+	display: flex;
+	align-items: center;
 	padding-left: .5em;
 	padding: .3em;
+}
+.sub-title {
+	flex: 0 0 90%;
+}
+.sub-count {
+	flex: 2;
 }
 .tag {
 	color: green;
