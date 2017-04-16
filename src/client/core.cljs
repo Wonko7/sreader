@@ -329,9 +329,9 @@
               "v" (do (let [guid (select-one [ATOM :selected :guid] article-metadata)
                             link (select-one [ATOM :articles ALL #(= guid (:guid %)) :link] feed-state)] ;; specter is awesome, my state structure isn't.
                         (.open js/window link))) ;; FIXME: for this to work in chrome (tab instead of pop up), we'd need to .open in the listen callback, which is annoying.
-              "G" (let [dom-node (. js/document (getElementById "feed"))]
+              "G" (let [dom-node (. js/document (getElementById "feed-content"))]
                     (set! (.-scrollTop dom-node) (.-scrollHeight dom-node)))
-              "g" (let [dom-node (. js/document (getElementById "feed"))]
+              "g" (let [dom-node (. js/document (getElementById "feed-content"))]
                     (set! (.-scrollTop dom-node) 0))
               :else-nothing
               ))))))
