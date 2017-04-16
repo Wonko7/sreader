@@ -195,7 +195,7 @@
   (println :mk-feed-title)
   (let [f-md          (-> feed-state rum/react :metadata)
         astate        (rum/react article-metadata)
-        visible-id    (:selected :guid astate)
+        visible-id    (-> astate :selected :guid)
         feed-exists?  (@subscriptions-state ftitle)
         sub-state     (if feed-exists?
                         (rum/react feed-exists?)
