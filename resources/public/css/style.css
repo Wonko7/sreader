@@ -32,10 +32,15 @@ body {
 #feed {
 	flex: 2;
 	padding-left: 2em;
-	/* padding-right: 2em; */
-	padding-bottom: 1em;
-	/* overflow-y: scroll; */
-	overflow-y: hidden;
+	min-height: 0;
+	/* padding-right: 2em;
+	padding-bottom: 1em; */
+	/* overflow-y: scroll;
+	 * */
+	height: 100vh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
 }
 #subscriptions .feeds {
 	padding: 1em;
@@ -142,15 +147,20 @@ body {
 #feed-content {
 /*
 overflow-y: scroll;
-	height: 100%;
+	flex: 1 1 auto;
+	flex: 0 1 100%;
  */
 	overflow-y: scroll;
-	
+	flex: 0 1 auto;
+	min-height: 0;
+	height: 100vh;
 	/*position: fixed;
+	overflow-y: scroll;
 	position: absolute;*/
 }
 
 .feed-title-wrapper {
+	flex: 0 1 auto;
 	display: flex;
 	flex-direction: row;
 	margin-top: 1em;
