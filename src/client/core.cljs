@@ -60,7 +60,8 @@
 
 (defn change-article-md [feed art-id md]
   (go (let [new-md      (:body (<! (http/post (str "/md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
-        (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata))))
+        (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata)
+        new-md)))
 
 (defn toggle-tag-md [tag key]
   (go (let [k-val       (select-one [ATOM (keypath tag) ATOM (keypath key)] tags-metadata)
@@ -80,13 +81,14 @@
                     (and (= cur-state "saved") (= new-state "saved"))     "unread"
                     (and (= cur-state "unread") (= new-state "read"))     "read"
                     (and (= cur-state "read") (= new-state "read"))       "unread")]
-    (when (and new-state (not= new-state cur-state))
-      (cond
-        (or (= new-state "read") (and (= cur-state "unread") (= new-state "saved")))
-        (transform [ATOM (keypath feed) ATOM :unread-count] dec subscriptions-state)
-        (= new-state "unread")
-        (transform [ATOM (keypath feed) ATOM :unread-count] inc subscriptions-state))
-      (change-article-md feed guid {:status new-state}))))
+    (if (and new-state (not= new-state cur-state))
+      (do (cond
+            (or (= new-state "read") (and (= cur-state "unread") (= new-state "saved")))
+            (transform [ATOM (keypath feed) ATOM :unread-count] dec subscriptions-state)
+            (= new-state "unread")
+            (transform [ATOM (keypath feed) ATOM :unread-count] inc subscriptions-state))
+          (change-article-md feed guid {:status new-state}))
+      (go :nothing-was-done))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; interaction:
@@ -103,8 +105,8 @@
                         (< next-nb total) next-nb
                         :else (dec total))
        guid       (or guid (:guid (nth articles next-nb)))]
-    (change-article-status-md "read" guid)
-    (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)))
+    (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)
+    (change-article-status-md "read" guid)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
@@ -192,7 +194,7 @@
         mk-select     (fn [value values callback]
                         [:select {:on-change callback :value value}
                          (for [v values]
-                           [:option { :value v } v])])]
+                           [:option {:value v} v])])]
     [:div.feed-title-wrapper
      [div-title
       [:div.title-only ftitle]
@@ -303,10 +305,10 @@
               character (.fromCharCode js/String (.-charCode key-event))]
           (when-not (:visible @search-state) ;; FIXME I hate myself.
             (condp = character
-              "j" (change-article 1)
-              "k" (change-article -1)
-              "m" (change-article-status-md "read")
-              "s" (change-article-status-md "saved")
+              "j" (<! (change-article 1))
+              "k" (<! (change-article -1))
+              "m" (<! (change-article-status-md "read"))
+              "s" (<! (change-article-status-md "saved"))
               "b" (transform [ATOM :visible] not search-state)
               "r" (request-feed (select-one [ATOM :feed-data :title] feed-state))
               "R" (do (request-subscriptions)
