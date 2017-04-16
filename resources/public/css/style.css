@@ -32,9 +32,10 @@ body {
 #feed {
 	flex: 2;
 	padding-left: 2em;
-	padding-right: 2em;
+	/* padding-right: 2em; */
 	padding-bottom: 1em;
-	overflow-y: scroll;
+	/* overflow-y: scroll; */
+	overflow-y: hidden;
 }
 #subscriptions .feeds {
 	padding: 1em;
@@ -138,8 +139,13 @@ body {
 	color: #888888;
 }
 
-#feed .feed {
-	/* overflow-y: scroll; */
+#feed-content {
+/*
+overflow-y: scroll;
+	height: 100%;
+ */
+	overflow-y: scroll;
+	
 	/*position: fixed;
 	position: absolute;*/
 }

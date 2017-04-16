@@ -168,7 +168,7 @@
                                        (when (select-one [ATOM (keypath guid) ATOM :visible?] article-metadata)
                                          (let [comp       (:rum/react-component state)
                                                art-node   (js/ReactDOM.findDOMNode comp)
-                                               feed-node  (. js/document (getElementById "feed"))]
+                                               feed-node  (. js/document (getElementById "feed-content"))]
                                            (set! (.-scrollTop feed-node) (.-offsetTop art-node))))
                                        state)}
   [state
@@ -219,34 +219,23 @@
     ))
 
 (rum/defcs mk-feed < rum/reactive
-                     ;{:did-update (fn [state] ;; FIXME: testing
-                     ;               "focus on current article on article/feed change -> kb scrolling"
-                     ;               (let [comp     (:rum/react-component state)
-                     ;                     dom-node (js/ReactDOM.findDOMNode comp)]
-                     ;                 (.focus dom-node))
-                     ;               state)}
                      {:did-update (fn [state]
-                                    "Go to top of article on article change"
+                                    "focus on feed change"
                                     (let [dom-node (. js/document (getElementById "feed"))]
-                                      ;(set! (.-scrollTop dom-node) 0)
                                       (.focus dom-node)
                                       state))}
   [state]
   (println :mk-feed)
   (let [fstate      (rum/react feed-state)
-        ;astate      (rum/react article-metadata)
         ftitle      (-> fstate :feed-data :title)
-        articles    (:articles fstate)
-        ;visible-id  (-> astate :selected :guid)
-        ;visible-nb  (or (-> astate :selected :number) 0)
-        ;articles    (drop visible-nb articles)
-        ]
-    [:div.feed
+        articles    (:articles fstate)]
+    [:div
      (mk-feed-title ftitle)
-     (for [a articles
-           :let [rum-key (:guid a)]]
-       (rum/with-key (mk-article a) rum-key)
-       )]))
+     [:div#feed-content
+      (for [a articles
+            :let [rum-key (:guid a)]]
+        (rum/with-key (mk-article a) rum-key)
+        )]]))
 
 (rum/mount (mk-feed)
            (. js/document (getElementById "feed")))
