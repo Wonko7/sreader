@@ -229,7 +229,7 @@
   (let [fstate      (rum/react feed-state)
         ftitle      (-> fstate :feed-data :title)
         articles    (:articles fstate)]
-    [:div
+    [:div#feed-page-wrapper
      (mk-feed-title ftitle)
      [:div#feed-content
       (for [a articles
