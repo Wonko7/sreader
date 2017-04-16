@@ -26,9 +26,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
 
 (defn init-feed-metadata [feed-state]
-  (let [feed-state (setval [:feed-data :selected] nil feed-state)
-        feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
-        articles (:articles feed-state)
+  (let [feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
+        articles (merge (:articles feed-state) {:selected nil})
         md (into {} (map (fn [{id :guid md :metadata}]
                            {id (atom (or md {:status "unread"}))})
                          articles))]
@@ -70,7 +69,7 @@
         (transform [ATOM (keypath tag) ATOM] #(merge % new-md) tags-metadata))))
 
 (defn change-article-status-md [new-state & [gguid]]
-  (let [guid (or gguid (-> @feed-state :feed-data :selected :guid))
+  (let [guid (or gguid (-> @article-metadata :selected :guid))
         feed (-> @feed-state :feed-data :title)
         cur-state (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
         cur-state (or cur-state "unread")
@@ -96,7 +95,7 @@
 (defn change-article [nb & [guid]]
   "If guid is given, nb is ignored, guid is selected.
   Otherwise next article is nb relative to current article."
-  (let [cur-nb          (-> @feed-state :feed-data :selected :number)
+  (let [cur-nb          (-> @article-metadata :selected :number)
         cur-nb          (or cur-nb -1)
         articles        (-> @feed-state :articles)
         total           (count articles)
@@ -107,7 +106,7 @@
         [guid next-nb]  (if guid
                           [guid (count (take-while #(not= guid (:guid %)) articles))]
                           [(:guid (nth articles next-nb)) next-nb])]
-    (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)
+    (setval [ATOM :selected] {:number next-nb :guid guid} article-metadata)
     (change-article-status-md "read" guid)))
 
 
@@ -115,6 +114,7 @@
 
 (rum/defc mk-sub < rum/reactive
   [feed show-all]
+  (println :mk-sub)
   (let [selected-feed (-> feed-state rum/react :feed-data :title)
         unread        (:unread-count (rum/react (@subscriptions-state feed)))
         a             (if (zero? unread) :a.grey :a)
@@ -129,6 +129,7 @@
 (rum/defcs mk-tag < rum/reactive
                     (rum/local false ::show-all-read)
   [state tag feeds]
+  (println :mk-tag)
   (let [tag-md    (rum/react (@tags-metadata tag))
         v?        (:visible? tag-md)
         show-all  (::show-all-read state)]
@@ -143,6 +144,7 @@
 
 (rum/defcs mk-subscriptions < rum/reactive
   [state]
+  (println :mk-subscriptions)
   (let [t-state   (rum/react tags-state)]
     [:div.feeds
      (for [tag (:tag-order t-state)
@@ -166,6 +168,7 @@
   [state
    {title :title date :pretty-date desc :description link :link id :guid}
    visible?]
+  (println :mk-article)
   (let [a-md (@article-metadata id)
         {read-status :status} (rum/react a-md)
         [art-div-style art-read-status] (condp = read-status
@@ -183,6 +186,7 @@
 
 (rum/defc mk-feed-title < rum/reactive
   [ftitle visible-id]
+  (println :mk-feed-title)
   (let [f-md          (-> feed-state rum/react :metadata)
         feed-exists?  (@subscriptions-state ftitle)
         sub-state     (if feed-exists?
@@ -214,11 +218,13 @@
                                       ;(.focus dom-node))
                                       state))}
   [state]
+  (println :mk-feed)
   (let [fstate      (rum/react feed-state)
+        astate      (rum/react article-metadata)
         ftitle      (-> fstate :feed-data :title)
         articles    (:articles fstate)
-        visible-id  (-> fstate :feed-data :selected :guid)
-        visible-nb  (or (-> fstate :feed-data :selected :number) 0)
+        visible-id  (-> astate :selected :guid)
+        visible-nb  (or (-> astate :selected :number) 0)
         articles    (drop visible-nb articles)]
     [:div.feed
      (mk-feed-title ftitle visible-id)
@@ -262,6 +268,7 @@
                                          (-> dom-node .-firstChild .-firstChild .focus))
                                        state))}
   [state]
+  (println :mk-search)
   (let [s-state   (rum/react search-state)
         v?        (:visible s-state)
         res       (:results s-state)
@@ -315,7 +322,7 @@
               "r" (request-feed (select-one [ATOM :feed-data :title] feed-state))
               "R" (do (request-subscriptions)
                       (request-feed (select-one [ATOM :feed-data :title] feed-state)))
-              "v" (do (let [guid (select-one [ATOM :feed-data :selected :guid] feed-state)
+              "v" (do (let [guid (select-one [ATOM :selected :guid] article-metadata)
                             link (select-one [ATOM :articles ALL #(= guid (:guid %)) :link] feed-state)] ;; specter is awesome, my state structure isn't.
                         (.open js/window link))) ;; FIXME: for this to work in chrome (tab instead of pop up), we'd need to .open in the listen callback, which is annoying.
               "G" (let [dom-node (. js/document (getElementById "feed"))]
