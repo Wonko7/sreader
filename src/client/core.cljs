@@ -115,16 +115,16 @@
 
 (rum/defc mk-sub < rum/reactive
   [feed show-all]
-    (let [selected-feed (-> feed-state rum/react :feed-data :title)
-          unread        (:unread-count (rum/react (@subscriptions-state feed)))
-          a             (if (zero? unread) :a.grey :a)
-          div           (if (= selected-feed feed)
-                          :div.subscription.selected
-                          :div.subscription)]
-      (when (or show-all (> unread 0))
-        [div {:on-click #(request-feed feed)}
-         [:div.sub-title [a {:href "javascript:void(0)"} feed]]
-         [:div.sub-count.small unread]])))
+  (let [selected-feed (-> feed-state rum/react :feed-data :title)
+        unread        (:unread-count (rum/react (@subscriptions-state feed)))
+        a             (if (zero? unread) :a.grey :a)
+        div           (if (= selected-feed feed)
+                        :div.subscription.selected
+                        :div.subscription)]
+    (when (or show-all (> unread 0))
+      [div {:on-click #(request-feed feed)}
+       [:div.sub-title [a {:href "javascript:void(0)"} feed]]
+       [:div.sub-count.small unread]])))
 
 (rum/defcs mk-tag < rum/reactive
                     (rum/local false ::show-all-read)
