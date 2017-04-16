@@ -80,7 +80,7 @@
                     (and (= cur-state "saved") (= new-state "saved"))     "unread"
                     (and (= cur-state "unread") (= new-state "read"))     "read"
                     (and (= cur-state "read") (= new-state "read"))       "unread")]
-    (if (and new-state (not= new-state cur-state))
+    (if (and guid new-state (not= new-state cur-state))
       (do (cond
             (or (= new-state "read") (and (= cur-state "unread") (= new-state "saved")))
             (transform [ATOM (keypath feed) ATOM :unread-count] dec subscriptions-state)
