@@ -169,6 +169,7 @@
                                          (let [comp       (:rum/react-component state)
                                                art-node   (js/ReactDOM.findDOMNode comp)
                                                feed-node  (. js/document (getElementById "feed-content"))]
+                                           (.focus feed-node)
                                            (set! (.-scrollTop feed-node) (-  (.-offsetTop art-node) (.-offsetTop feed-node)))))
                                        state)}
   [state
