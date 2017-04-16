@@ -96,15 +96,17 @@
 (defn change-article [nb & [guid]]
   "If guid is given, nb is ignored, guid is selected.
   Otherwise next article is nb relative to current article."
-  (let [cur-nb    (-> @feed-state :feed-data :selected :number)
-        cur-nb    (or cur-nb -1)
-        articles  (-> @feed-state :articles)
-        total     (count articles)
-        next-nb   (+ nb cur-nb)
-        next-nb   (cond (< next-nb 0) 0
-                        (< next-nb total) next-nb
-                        :else (dec total))
-       guid       (or guid (:guid (nth articles next-nb)))]
+  (let [cur-nb          (-> @feed-state :feed-data :selected :number)
+        cur-nb          (or cur-nb -1)
+        articles        (-> @feed-state :articles)
+        total           (count articles)
+        next-nb         (+ nb cur-nb)
+        next-nb         (cond (< next-nb 0) 0
+                              (< next-nb total) next-nb
+                              :else (dec total))
+        [guid next-nb]  (if guid
+                          [guid (count (take-while #(not= guid (:guid %)) articles))]
+                          [(:guid (nth articles next-nb)) next-nb])]
     (setval [ATOM :feed-data :selected] {:number next-nb :guid guid} feed-state)
     (change-article-status-md "read" guid)))
 
