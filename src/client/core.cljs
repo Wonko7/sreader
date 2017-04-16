@@ -163,12 +163,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feeds!
 
 (rum/defcs mk-article < rum/reactive
-                        ;{:did-update (fn [state] ;; FIXME: we're doing this  on EVERY article (unselected too), bad. but h
-                        ;               "focus on current article on article/feed change -> kb scrolling"
-                        ;               (let [comp     (:rum/react-component state)
-                        ;                     dom-node (js/ReactDOM.findDOMNode comp)]
-                        ;                 (.focus dom-node))
-                        ;               state)}
+                        {:did-update (fn [{[{guid :guid}] :rum/args :as state}] ;; FIXME: we're doing this  on EVERY article (unselected too), bad. but h
+                                       "focus on current article on article/feed change -> kb scrolling"
+                                       (when (select-one [ATOM (keypath guid) ATOM :visible?] article-metadata)
+                                         (let [comp       (:rum/react-component state)
+                                               art-node   (js/ReactDOM.findDOMNode comp)
+                                               feed-node  (. js/document (getElementById "feed"))]
+                                           (set! (.-scrollTop feed-node) (.-offsetTop art-node))))
+                                       state)}
   [state
    {title :title date :pretty-date desc :description link :link id :guid}]
   (println :mk-article)
@@ -226,7 +228,7 @@
                      {:did-update (fn [state]
                                     "Go to top of article on article change"
                                     (let [dom-node (. js/document (getElementById "feed"))]
-                                      (set! (.-scrollTop dom-node) 0)
+                                      ;(set! (.-scrollTop dom-node) 0)
                                       (.focus dom-node)
                                       state))}
   [state]
