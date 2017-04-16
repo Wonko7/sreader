@@ -3,7 +3,7 @@
             [cljs-http.client :as http]
             [cognitect.transit :as json]
             [cljs.core.async :refer [chan <! >!] :as a]
-            [com.rpl.specter :as s :refer [setval select-one select transform multi-transform multi-path filterer keypath pred submap terminal-val terminal srange ALL ATOM FIRST MAP-VALS]]
+            [com.rpl.specter :as s :refer [setval select-one select transform must if-path cond-path multi-transform multi-path filterer keypath pred submap terminal-val terminal srange ALL ATOM FIRST MAP-VALS]]
             [simple-reader.helpers :as h]
             ;; goog
             [goog.events :as events]
@@ -29,7 +29,7 @@
   (let [feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
         articles (merge (:articles feed-state) {:selected nil})
         md (into {} (map (fn [{id :guid md :metadata}]
-                           {id (atom (or md {:status "unread"}))})
+                           {id (atom (merge {:status "unread" :visible? false} md))})
                          articles))]
     (reset! article-metadata md)
     feed-state))
@@ -96,6 +96,7 @@
   "If guid is given, nb is ignored, guid is selected.
   Otherwise next article is nb relative to current article."
   (let [cur-nb          (-> @article-metadata :selected :number)
+        cur-guid        (-> @article-metadata :selected :guid)
         cur-nb          (or cur-nb -1)
         articles        (-> @feed-state :articles)
         total           (count articles)
@@ -106,7 +107,10 @@
         [guid next-nb]  (if guid
                           [guid (count (take-while #(not= guid (:guid %)) articles))]
                           [(:guid (nth articles next-nb)) next-nb])]
-    (setval [ATOM :selected] {:number next-nb :guid guid} article-metadata)
+    (multi-transform [ATOM (multi-path [:selected (terminal-val {:number next-nb :guid guid})]
+                                       [(if-path (keypath cur-guid) (keypath cur-guid)) ATOM :visible? (terminal-val false)]
+                                       [(keypath guid) ATOM :visible? (terminal-val true)])]
+                     article-metadata)
     (change-article-status-md "read" guid)))
 
 
@@ -159,18 +163,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feeds!
 
 (rum/defcs mk-article < rum/reactive
-                        {:did-update (fn [state]
-                                       "focus on current article on article/feed change -> kb scrolling"
-                                       (let [comp     (:rum/react-component state)
-                                             dom-node (js/ReactDOM.findDOMNode comp)]
-                                         (.focus dom-node))
-                                       state)}
+                        ;{:did-update (fn [state] ;; FIXME: we're doing this  on EVERY article (unselected too), bad. but h
+                        ;               "focus on current article on article/feed change -> kb scrolling"
+                        ;               (let [comp     (:rum/react-component state)
+                        ;                     dom-node (js/ReactDOM.findDOMNode comp)]
+                        ;                 (.focus dom-node))
+                        ;               state)}
   [state
-   {title :title date :pretty-date desc :description link :link id :guid}
-   visible?]
+   {title :title date :pretty-date desc :description link :link id :guid}]
   (println :mk-article)
-  (let [a-md (@article-metadata id)
-        {read-status :status} (rum/react a-md)
+  (let [a-md     (@article-metadata id)
+        {read-status :status visible? :visible?} (rum/react a-md)
         [art-div-style art-read-status] (condp = read-status
                                           "saved" [:div.article.saved "saved"]
                                           "read"  [:div.article.read ""]
@@ -185,13 +188,16 @@
       ]]))
 
 (rum/defc mk-feed-title < rum/reactive
-  [ftitle visible-id]
+  [ftitle]
   (println :mk-feed-title)
   (let [f-md          (-> feed-state rum/react :metadata)
+        astate        (rum/react article-metadata)
+        visible-id    (:selected :guid astate)
         feed-exists?  (@subscriptions-state ftitle)
         sub-state     (if feed-exists?
                         (rum/react feed-exists?)
                         {:unread-count ""})
+        ;; feed select controls:
         order         (or (:order f-md) "oldest then saved")
         order-values  ["oldest" "newest" "oldest then saved"]
         view          (or (:view-art-status f-md) "unread")
@@ -211,26 +217,33 @@
     ))
 
 (rum/defcs mk-feed < rum/reactive
+                     ;{:did-update (fn [state] ;; FIXME: testing
+                     ;               "focus on current article on article/feed change -> kb scrolling"
+                     ;               (let [comp     (:rum/react-component state)
+                     ;                     dom-node (js/ReactDOM.findDOMNode comp)]
+                     ;                 (.focus dom-node))
+                     ;               state)}
                      {:did-update (fn [state]
                                     "Go to top of article on article change"
                                     (let [dom-node (. js/document (getElementById "feed"))]
                                       (set! (.-scrollTop dom-node) 0)
-                                      ;(.focus dom-node))
+                                      (.focus dom-node)
                                       state))}
   [state]
   (println :mk-feed)
   (let [fstate      (rum/react feed-state)
-        astate      (rum/react article-metadata)
+        ;astate      (rum/react article-metadata)
         ftitle      (-> fstate :feed-data :title)
         articles    (:articles fstate)
-        visible-id  (-> astate :selected :guid)
-        visible-nb  (or (-> astate :selected :number) 0)
-        articles    (drop visible-nb articles)]
+        ;visible-id  (-> astate :selected :guid)
+        ;visible-nb  (or (-> astate :selected :number) 0)
+        ;articles    (drop visible-nb articles)
+        ]
     [:div.feed
-     (mk-feed-title ftitle visible-id)
+     (mk-feed-title ftitle)
      (for [a articles
            :let [rum-key (:guid a)]]
-       (rum/with-key (mk-article a (= rum-key visible-id)) rum-key)
+       (rum/with-key (mk-article a) rum-key)
        )]))
 
 (rum/mount (mk-feed)
