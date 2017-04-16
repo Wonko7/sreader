@@ -169,7 +169,7 @@
                                          (let [comp       (:rum/react-component state)
                                                art-node   (js/ReactDOM.findDOMNode comp)
                                                feed-node  (. js/document (getElementById "feed-content"))]
-                                           (set! (.-scrollTop feed-node) (.-offsetTop art-node))))
+                                           (set! (.-scrollTop feed-node) (-  (.-offsetTop art-node) (.-offsetTop feed-node)))))
                                        state)}
   [state
    {title :title date :pretty-date desc :description link :link id :guid}]
