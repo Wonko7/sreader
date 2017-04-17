@@ -174,8 +174,9 @@
                                          (let [comp       (:rum/react-component state)
                                                art-node   (js/ReactDOM.findDOMNode comp)
                                                feed-node  (. js/document (getElementById "feed-content"))]
-                                           (.focus feed-node)
+                                           (.focus art-node)
                                            (set! (.-scrollTop feed-node) (-  (.-offsetTop art-node) (.-offsetTop feed-node)))))
+
                                        state)}
   [state
    {title :title date :pretty-date desc :description link :link id :guid}]
@@ -226,8 +227,8 @@
 
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
-                                    "focus on feed change"
-                                    (let [dom-node (. js/document (getElementById "feed"))]
+                                    "focus on feed change" ;; FIXME apparently broken. since flex changes?
+                                    (let [dom-node (. js/document (getElementById "feed-content"))]
                                       (.focus dom-node)
                                       state))}
   [state]
@@ -298,12 +299,7 @@
                                                                       (if (>= n 0) n 0)))]
                                               (cond (= 38 kcode) (transform [ATOM :nth] s-dec search-state)
                                                     (= 40 kcode) (transform [ATOM :nth] s-inc search-state)
-                                                    (= 13 kcode) (select-search-feed))
-                                              (when (:visible @search-state)
-                                                (comment
-                                                  (.preventDefault %)
-                                                  (.stopPropagation %)))
-                                              false)
+                                                    (= 13 kcode) (select-search-feed)))
                               :on-change #(search (-> % .-target .-value))}]
         [:div (vec res)]]])))
 
