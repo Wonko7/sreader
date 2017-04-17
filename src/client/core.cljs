@@ -69,24 +69,25 @@
         (transform [ATOM (keypath tag) ATOM] #(merge % new-md) tags-metadata))))
 
 (defn change-article-status-md [new-state & [gguid]]
-  (let [guid (or gguid (-> @article-metadata :selected :guid))
-        feed (-> @feed-state :feed-data :title)
-        cur-state (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
-        cur-state (or cur-state "unread")
-        new-state (cond
-                    (and gguid (not= cur-state "saved"))                  "read" ;; hackish, this is for auto-mark-read on article change
-                    (and (not= cur-state "saved") (= new-state "saved"))  "saved"
-                    (and (= cur-state "saved") (= new-state "read"))      nil
-                    (and (= cur-state "saved") (= new-state "saved"))     "unread"
-                    (and (= cur-state "unread") (= new-state "read"))     "read"
-                    (and (= cur-state "read") (= new-state "read"))       "unread")]
-    (if (and guid new-state (not= new-state cur-state))
-      (do (cond
-            (or (= new-state "read") (and (= cur-state "unread") (= new-state "saved")))
-            (transform [ATOM (keypath feed) ATOM :unread-count] dec subscriptions-state)
-            (= new-state "unread")
-            (transform [ATOM (keypath feed) ATOM :unread-count] inc subscriptions-state))
-          (change-article-md feed guid {:status new-state}))
+  (let [guid          (or gguid (-> @article-metadata :selected :guid))
+        feed          (-> @feed-state :feed-data :title)
+        cur-state     (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
+        cur-state     (or cur-state "unread")
+        new-state     (cond (and gguid (not= cur-state "saved"))                  "read" ;; hackish, this is for auto-mark-read on article change
+                            (and (= cur-state "unread") (= new-state "read"))     "read"
+                            (= cur-state new-state)                               "unread"
+                            :else                                                 "saved")
+        update-count  (fn [type cur-count]
+                        (condp = type
+                          new-state (inc cur-count)
+                          cur-state (dec cur-count)
+                          cur-count))]
+    (if (and guid (not= new-state cur-state))
+      (do
+        (multi-transform [ATOM (keypath feed) ATOM (multi-path [:unread-count (terminal #(update-count "unread" %))]
+                                                               [:saved-count (terminal #(update-count "saved" %))])]
+                         subscriptions-state)
+        (change-article-md feed guid {:status new-state}))
       (go :nothing-was-done))))
 
 
