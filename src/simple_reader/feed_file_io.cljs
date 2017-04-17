@@ -66,14 +66,18 @@
   (->> (mk-root-path "feeds" feed)
        (.readdirSync FS)
        (map #(read-article-md feed %))
-       (filter #(= "unread" (:status %)))
-       count))
+       (reduce (fn [[u s] md]
+                 (cond (= "unread" (:status md)) [(inc u) s]
+                       (= "saved" (:status md)) [u (inc s)]
+                       :else [u s]))
+               [0 0])))
 
 
 (defn load-feed-md [dir]
-  (let [path  (mk-root-path "feeds" dir "feed-metadata")
-        md    (read-json-file path)]
-    {(:name md) (merge {:dir dir :unread-count (count-unread dir)} md)}))
+  (let [path           (mk-root-path "feeds" dir "feed-metadata")
+        md             (read-json-file path)
+        [unread saved] (count-unread dir)]
+    {(:name md) (merge {:dir dir :unread-count unread :saved-count saved} md)}))
 
 
 (defn load-feeds-md []
