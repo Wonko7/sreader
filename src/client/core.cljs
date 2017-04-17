@@ -249,21 +249,22 @@
 (defonce search-state (atom {:visible false}))
 
 (defn select-search-feed []
-  (when-let [feed (nth (:results @search-state) (:nth @search-state))]
-    (request-feed feed))
+  (when-let [n    (:nth @search-state)]
+    (request-feed (nth (:results @search-state) n)))
   (reset! search-state {:visible false}))
 
 (defn search [text]
-  (let [subs  (sort (select [ATOM ALL FIRST] subscriptions-state)) ;; FIXME no we're not.
+  (let [subs  (select-one [ATOM :subscriptions] search-state)
         re    (re-pattern (str "(?i)" (apply str (interpose ".*?" text))))
-        res   (->> subs
-                   (map #(vector (re-find re %) %))
-                   (filter first)
-                   (sort-by #(-> % first count))
-                   (take 10)
-                   (map second))]
+        res   (when-not (empty? text)
+                (->> subs
+                     (map #(vector (re-find re %) %))
+                     (filter first)
+                     (sort-by #(-> % first count))
+                     (take 10)
+                     (map second)))]
     (multi-transform [ATOM (multi-path [:results (terminal-val res)]
-                                       [:nth (terminal-val 0)])]
+                                       [:nth (terminal-val (if res 0 nil))])]
                      search-state)))
 
 (rum/defcs mk-search < rum/reactive
@@ -325,7 +326,7 @@
               "k" (<! (change-article -1))
               "m" (<! (change-article-status-md "read"))
               "s" (<! (change-article-status-md "saved"))
-              "b" (transform [ATOM :visible] not search-state)
+              "b" (setval [ATOM] {:visible true :subscriptions (sort (select [ATOM ALL FIRST] subscriptions-state))} search-state)
               "r" (request-feed (select-one [ATOM :feed-data :title] feed-state))
               "R" (do (request-subscriptions)
                       (request-feed (select-one [ATOM :feed-data :title] feed-state)))
