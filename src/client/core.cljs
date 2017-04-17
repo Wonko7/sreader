@@ -108,11 +108,13 @@
         [guid next-nb]  (if guid
                           [guid (count (take-while #(not= guid (:guid %)) articles))]
                           [(:guid (nth articles next-nb)) next-nb])]
-    (multi-transform [ATOM (multi-path [:selected (terminal-val {:number next-nb :guid guid})]
-                                       [(if-path (keypath cur-guid) (keypath cur-guid)) ATOM :visible? (terminal-val false)]
-                                       [(keypath guid) ATOM :visible? (terminal-val true)])]
-                     article-metadata)
-    (change-article-status-md "read" guid)))
+    (if (not= next-nb cur-nb)
+      (do (multi-transform [ATOM (multi-path [:selected (terminal-val {:number next-nb :guid guid})]
+                                             [(if-path (keypath cur-guid) (keypath cur-guid)) ATOM :visible? (terminal-val false)]
+                                             [(keypath guid) ATOM :visible? (terminal-val true)])]
+                           article-metadata)
+          (change-article-status-md "read" guid))
+      (go :nothing-was-done))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
