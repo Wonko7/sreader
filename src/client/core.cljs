@@ -121,7 +121,6 @@
 
 (rum/defc mk-sub < rum/reactive
   [feed show-all]
-  (println :mk-sub)
   (let [selected-feed (-> feed-state rum/react :feed-data :title)
         sub-md        (rum/react (@subscriptions-state feed))
         unread        (:unread-count sub-md)
@@ -138,7 +137,6 @@
 (rum/defcs mk-tag < rum/reactive
                     (rum/local false ::show-all-read)
   [state tag feeds]
-  (println :mk-tag)
   (let [tag-md    (rum/react (@tags-metadata tag))
         v?        (:visible? tag-md)
         show-all  (::show-all-read state)]
@@ -153,7 +151,6 @@
 
 (rum/defcs mk-subscriptions < rum/reactive
   [state]
-  (println :mk-subscriptions)
   (let [t-state   (rum/react tags-state)]
     [:div.feeds
      (for [tag (:tag-order t-state)
@@ -180,7 +177,6 @@
                                        state)}
   [state
    {title :title date :pretty-date desc :description link :link id :guid}]
-  (println :mk-article)
   (let [a-md     (@article-metadata id)
         {read-status :status visible? :visible?} (rum/react a-md)
         [art-div-style art-read-status] (condp = read-status
@@ -198,7 +194,6 @@
 
 (rum/defc mk-feed-title < rum/reactive
   [ftitle]
-  (println :mk-feed-title)
   (let [f-md          (-> feed-state rum/react :metadata)
         astate        (rum/react article-metadata)
         visible-id    (-> astate :selected :guid)
@@ -232,7 +227,6 @@
                                       (.focus dom-node)
                                       state))}
   [state]
-  (println :mk-feed)
   (let [fstate      (rum/react feed-state)
         ftitle      (-> fstate :feed-data :title)
         articles    (:articles fstate)]
@@ -280,7 +274,6 @@
                                          (-> dom-node .-firstChild .-firstChild .focus))
                                        state))}
   [state]
-  (println :mk-search)
   (let [s-state   (rum/react search-state)
         v?        (:visible s-state)
         res       (:results s-state)
