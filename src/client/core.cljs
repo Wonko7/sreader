@@ -203,6 +203,7 @@
 (rum/defc mk-feed-title < rum/reactive
   [ftitle]
   (let [f-md          (-> feed-state rum/react :metadata)
+        visible?      (-> tags-state rum/react :visible?)
         astate        (rum/react article-metadata)
         visible-id    (-> astate :selected :guid)
         feed-exists?  (@subscriptions-state ftitle)
@@ -219,7 +220,7 @@
                         [:select {:on-change callback :value value}
                          (for [v values]
                            [:option {:value v} v])])]
-    [:div.feed-title-wrapper
+    [:div.feed-title-wrapper {:style {:display (if visible? "" "none")}}
      [div-title
       [:div.title-only ftitle]
       [:div.feed-count.small (:unread-count sub-state)]]
