@@ -41,9 +41,10 @@
                                     {k (atom md)}))
             subs-state  (mk-atom-dic (:subscriptions response))
             t-md        (mk-atom-dic (:tag-metadata response))
-            t-state     (select-one [(submap [:tag-order :tag-content])] response)]
+            t-state     (select-one [(submap [:tag-order :tag-content])] response)
+            t-visible?  (:visible? @tags-state)]
         (reset! subscriptions-state subs-state)
-        (reset! tags-state t-state)
+        (reset! tags-state (merge {:visible? (if (nil? t-visible?) true t-visible?)} t-state))
         (reset! tags-metadata t-md))))
 
 (defn request-feed [title]
@@ -150,6 +151,13 @@
          (rum/with-key (mk-sub f @show-all) f)))]))
 
 (rum/defcs mk-subscriptions < rum/reactive
+                              {:did-update (fn [state]
+                                             "hide/show"
+                                             (let [comp       (:rum/react-component state)
+                                                   feeds-node (js/ReactDOM.findDOMNode comp)
+                                                   par-node   (.-parentElement feeds-node)]
+                                               (set! (-> par-node .-style .-display) (if (:visible? @tags-state) "" "none"))
+                                               state))}
   [state]
   (let [t-state   (rum/react tags-state)]
     [:div.feeds
@@ -170,7 +178,7 @@
                                        (when (select-one [ATOM (keypath guid) ATOM :visible?] article-metadata)
                                          (let [comp       (:rum/react-component state)
                                                art-node   (js/ReactDOM.findDOMNode comp)
-                                               feed-node  (. js/document (getElementById "feed-content"))]
+                                               feed-node  (.getElementById js/document "feed-content")]
                                            (.focus art-node)
                                            (set! (.-scrollTop feed-node) (-  (.-offsetTop art-node) (.-offsetTop feed-node)))))
 
@@ -329,6 +337,7 @@
                     (set! (.-scrollTop dom-node) (.-scrollHeight dom-node)))
               "g" (let [dom-node (. js/document (getElementById "feed-content"))]
                     (set! (.-scrollTop dom-node) 0))
+              "f" (transform [ATOM :visible?] not tags-state)
               :else-nothing
               ))))))
 
