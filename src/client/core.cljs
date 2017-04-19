@@ -173,7 +173,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feeds!
 
 (rum/defcs mk-article < rum/reactive
-                        {:did-update (fn [{[{guid :guid}] :rum/args :as state}] ;; FIXME: we're doing this  on EVERY article (unselected too), bad. but h
+                        {:did-update (fn [{[{guid :guid}] :rum/args :as state}]
                                        "focus on current article on article/feed change -> kb scrolling"
                                        (when (select-one [ATOM (keypath guid) ATOM :visible?] article-metadata)
                                          (let [comp       (:rum/react-component state)
@@ -181,7 +181,6 @@
                                                feed-node  (.getElementById js/document "feed-content")]
                                            (.focus art-node)
                                            (set! (.-scrollTop feed-node) (-  (.-offsetTop art-node) (.-offsetTop feed-node)))))
-
                                        state)}
   [state
    {title :title date :pretty-date desc :description link :link id :guid}]
@@ -231,9 +230,10 @@
 
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
-                                    "focus on feed change" ;; FIXME apparently broken. since flex changes?
-                                    (let [dom-node (. js/document (getElementById "feed-content"))]
-                                      (.focus dom-node)
+                                    "focus on feed change"
+                                    (let [feed-node (. js/document (getElementById "feed-content"))]
+                                      (.focus feed-node)
+                                      (set! (.-scrollTop feed-node) 0)
                                       state))}
   [state]
   (let [fstate      (rum/react feed-state)
