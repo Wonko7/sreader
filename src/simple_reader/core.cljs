@@ -29,12 +29,10 @@
         subs-req    (chan)
         subs-ans    (chan)
         ;;
-        feed-md             (atom (io/load-feeds-md))
-        get-fd-dir          (fn [name]
-                              (-> name (@feed-md) :dir))
+        feed-md             (atom {})
         get-subs-by-tags    (fn []
                               (reset! feed-md (io/load-feeds-md))
-                              (let [tags-md   (io/read-tags-md)
+                              (let [tags-md   (io/load-tags-md)
                                     tag-list  (sort-by #(-> % tags-md :position) (keys tags-md))
                                     get-feeds-by-tag (fn [tag]
                                                        (sort-by :name (select [ATOM MAP-VALS (fn [v] (some #(= tag %) (:tags v))) :name] feed-md)))]
@@ -53,13 +51,11 @@
                                                                         :done)
                                                  (= :error to-save) (do (println "core: error:" cnt "articles:" feed)
                                                                         :error)
-                                                 :else (do (let [art-id   (js/encodeURIComponent (:guid to-save))
-                                                                 feed-dir (get-fd-dir feed)
-                                                                 scraped  (io/read-article-scraped feed art-id)
+                                                 :else (do (let [scraped  (io/read-article-scraped feed (:guid to-save))
                                                                  scraped  (if (empty? scraped)
                                                                             (scrape/scrape feed (:link to-save))
                                                                             (go scraped))]
-                                                             (go (io/write-article feed-dir to-save (<! scraped))))
+                                                             (go (io/save-article feed to-save (<! scraped))))
                                                            (recur (<! articles) (inc cnt))))
                                                )))))
         ]
@@ -74,11 +70,10 @@
     ;; read feeds web client:
     (go-loop [{feed :feed nb :nb :as fixme} (<! feed-req)]
              (println :getting fixme (@feed-md feed))
-             (let [f-dir    (get-fd-dir feed)
-                   metadata (io/read-feed-md f-dir)
+             (let [metadata (io/load-feed-md feed)
                    view     (or (:view-art-status metadata) "unread")
                    order    (or (:order metadata)  "oldest then saved")
-                   articles (io/read-feed f-dir)
+                   articles (io/load-feed feed)
                    ;view-values   ["unread" "saved" "all"]
                    articles (condp = view 
                               "unread"  (let [unread  (filter #(not= "read" (-> % :metadata :status)) articles)
@@ -108,29 +103,29 @@
 
 
     ;; handle article metadata changes:
-    (go-loop [{{feed-id :feed article-id :article} :article-id new-md :metadata} (<! art-md-req)]
+    (go-loop [{{feed :feed article :article} :article-id new-md :metadata} (<! art-md-req)]
              (println :a-md-ch new-md)
-             (let [cur-md  (io/read-article-md (get-fd-dir feed-id) article-id)
+             (let [cur-md  (io/read-article-md feed article)
                    md       (merge cur-md new-md)]
-               (io/write-article-md (get-fd-dir feed-id) article-id md)
+               (io/save-article-md feed article md)
                (>! art-md-ans md)
                (recur (<! art-md-req))))
 
     ;; handle feed metadata changes:
     (go-loop [{feed :feed new-md :metadata} (<! feed-md-req)]
              (println :f-md-ch feed new-md)
-             (let [cur-md  (io/read-feed-md feed)
+             (let [cur-md  (io/load-feed-md feed)
                    md      (merge cur-md new-md)]
-               (io/write-feed-md feed md)
+               (io/save-feed-md feed md)
                (>! feed-md-ans md)
                (recur (<! feed-md-req))))
 
     ;; handle tag metadata changes:
     (go-loop [{tag :tag-id new-md :metadata} (<! tag-md-req)]
              (println :t-md-ch tag new-md)
-             (let [cur-md  (io/read-tag-md tag)
+             (let [cur-md  (io/load-tag-md tag)
                    md      (merge cur-md new-md)]
-               (io/write-tag-md tag md)
+               (io/save-tag-md tag md)
                (>! tag-md-ans md)
                (recur (<! tag-md-req))))
 

@@ -32,12 +32,11 @@
                              (.send res (h/to-js (<! request-subs-ans))))))
     (.post app "/md/:feed/:article" (fn [req res]
                                       (let [article-id  (-> req .-params h/to-clj)
-                                            article-id  (transform [:article] js/encodeURIComponent article-id)
                                             metadata    (-> req .-body h/to-clj)]
                                         (go (>! request-article-md-change-ch {:article-id article-id :metadata metadata})
                                             (.send res (h/to-js (<! request-article-md-change-ans))))))) ;; FIXME is h/to-js necessary?
     (.post app "/f-md/:feed" (fn [req res]
-                               (let [feed-id  (-> req .-params h/to-clj :feed js/encodeURIComponent)
+                               (let [feed-id  (-> req .-params h/to-clj :feed)
                                      metadata (-> req .-body h/to-clj)]
                                  (go (>! request-feed-md-change-ch {:feed feed-id :metadata metadata})
                                      (.send res (h/to-js (<! request-feed-md-change-ans)))))))
