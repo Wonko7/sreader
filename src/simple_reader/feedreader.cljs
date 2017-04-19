@@ -80,10 +80,10 @@
   (let [req   ((node/require "request") feed (cljs/clj->js {:timeout 50000 :pool false}))
         fp    (node/require "feedparser")
         fp    (new fp)]
-    (.setMaxListeners req 1000)
+    (.setMaxListeners req 50)
     (.setHeader req "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36")
     (.setHeader req "accept" "text/html,application/xhtml+xml")
-    (.on req "error" #(go (println "feed-parser: error requesting" feed %)
+    (.on req "error" #(go (println "feed-reader: error requesting" feed %)
                           (>! result-chan :error)))
     (.on req "response" (fn [result]
                           (when (not= 200 (.-statusCode result))

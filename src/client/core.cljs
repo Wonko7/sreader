@@ -54,7 +54,6 @@
 
 (defn change-feed-md [feed md]
   (go (let [new-md      (:body (<! (http/post (str "/f-md/" (js/encodeURIComponent feed)) {:json-params md})))]
-        ;(transform [ATOM :metadata] #(merge % new-md) feed-state)
         (request-feed feed))))
 
 
@@ -183,7 +182,7 @@
                                            (set! (.-scrollTop feed-node) (-  (.-offsetTop art-node) (.-offsetTop feed-node)))))
                                        state)}
   [state
-   {title :title date :pretty-date desc :description link :link id :guid}]
+   {title :title date :pretty-date desc :description scraped :scraped link :link id :guid}]
   (let [a-md     (@article-metadata id)
         {read-status :status visible? :visible?} (rum/react a-md)
         [art-div-style art-read-status] (condp = read-status
@@ -195,9 +194,9 @@
      [:a.title {:href (if visible? link "javascript:void(0)")} title]
      [:br]
      [:div.article-info.small [:div.date date] [:div.artical-satus art-read-status]]
-     [:div.content {:dangerouslySetInnerHTML {:__html desc}
-                    :style {:display (if visible? "" "none")}}
-      ]]))
+     [:div.content {:style {:display (if visible? "" "none")}}
+      [:div.scraped {:dangerouslySetInnerHTML {:__html (:scraped-data scraped)}}] ;; FIXME might need more flexibility?
+      [:div.description {:dangerouslySetInnerHTML {:__html desc}}]]]))
 
 (rum/defc mk-feed-title < rum/reactive
   [ftitle]

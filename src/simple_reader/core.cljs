@@ -9,6 +9,7 @@
     [cognitect.transit :as json]
     [simple-reader.feed-file-io :as io]
     [simple-reader.http :as http]
+    [simple-reader.scrape :as scrape]
     [com.rpl.specter :as s :refer [collect setval select-one select transform view filterer keypath pred srange ALL ATOM FIRST MAP-VALS]])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
@@ -43,16 +44,22 @@
                                  :subscriptions @feed-md}))
         update-feeds        (fn []
                               (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
-                              (go (doseq [[k {link :url name :name dir :dir}] @feed-md]
+                              (go (doseq [[k {link :url feed :name}] @feed-md]
                                     (let [articles (chan)]
                                       (fr/read link articles)
                                       (go-loop [to-save (<! articles) cnt 0]
                                                (cond
-                                                 (= :done to-save)  (do (println "core:" cnt "articles:" name)
+                                                 (= :done to-save)  (do (println "core:" cnt "articles:" feed)
                                                                         :done)
-                                                 (= :error to-save) (do (println "core: error:" cnt "articles:" name)
+                                                 (= :error to-save) (do (println "core: error:" cnt "articles:" feed)
                                                                         :error)
-                                                 :else (do (io/save-article (get-fd-dir name) to-save)
+                                                 :else (do (let [art-id   (js/encodeURIComponent (:guid to-save))
+                                                                 feed-dir (get-fd-dir feed)
+                                                                 scraped  (io/read-article-scraped feed art-id)
+                                                                 scraped  (if (empty? scraped)
+                                                                            (scrape/scrape feed (:link to-save))
+                                                                            (go scraped))]
+                                                             (go (io/write-article feed-dir to-save (<! scraped))))
                                                            (recur (<! articles) (inc cnt))))
                                                )))))
         ]
