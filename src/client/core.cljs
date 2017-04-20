@@ -21,6 +21,7 @@
 (defonce tags-metadata (atom {}))
 (defonce feed-state (atom {:feed-data {:title "Loading..."}}))
 (defonce article-metadata (atom {}))
+(defonce search-state (atom {:visible false}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
@@ -252,8 +253,6 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; search:
-
-(defonce search-state (atom {:visible false}))
 
 (defn select-search-feed []
   (when-let [n    (:nth @search-state)]
