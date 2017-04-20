@@ -271,3 +271,7 @@ a:active
 .left {
 	float: right;
 }
+
+.scraped img {
+	width: 100%;
+}

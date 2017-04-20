@@ -52,7 +52,14 @@
                            link (str/replace link #"(.*)rss$" "$1")]
                        (simple-scrape "div.ArticleEntry" {:link link}))
                      (go {}))))
-    :overwrite true}})
+    :overwrite true}
+   "NASA Image of the Day"
+   {:scrape-fn (fn [{link :link}]
+                 (go (let [$ (.load (node/require "cheerio") (<! (get-link link)))
+                           img (-> ($ "meta[property='og:image']")
+                                   (.attr "content"))]
+                     (str "<img src=\"" img "\">"))))}
+   })
 
 (defn scrape [feed article]
   (go (if-let [scrape-fn (-> feed scrape-data :scrape-fn)]
