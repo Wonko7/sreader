@@ -90,7 +90,6 @@
     (let [articles (chan)]
       (fr/read link articles)
       (go-loop [to-save (<! articles) cnt 0]
-               (println (:link to-save))
                (cond
                  (= :done to-save)  (do (println "core:" cnt "articles:" feed)
                                         :done)
