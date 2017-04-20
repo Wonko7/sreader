@@ -75,11 +75,12 @@
      :guid          (:guid article)}))
 
 
-(defn read [feed result-chan]
-  "Will read each value from the given feed address and write them to the result-chan."
-  (let [req   ((node/require "request") feed (cljs/clj->js {:timeout 50000 :pool false}))
-        fp    (node/require "feedparser")
-        fp    (new fp)]
+(defn read [feed]
+  "Will read each value from the given feed address and them to the returned channel"
+  (let [result-chan (chan)
+        req         ((node/require "request") feed (cljs/clj->js {:timeout 50000 :pool false}))
+        fp          (node/require "feedparser")
+        fp          (new fp)]
     (.setMaxListeners req 50)
     (.setHeader req "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36")
     (.setHeader req "accept" "text/html,application/xhtml+xml")
@@ -107,4 +108,4 @@
     (.on fp "error" #(go (println "feed-reader: feed parser error:" feed %)
                          (>! result-chan :error)
                          (a/close! result-chan)))
-    ))
+    result-chan))

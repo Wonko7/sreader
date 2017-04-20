@@ -86,25 +86,20 @@
 
 (defn update-feeds []
   "scrape subscriptions"
-  (let [process-article (fn [feed to-save]
-                          (if (or (= to-save :done) (= to-save :error))
-                            to-save
-                            (let [scraped  (io/read-article-scraped feed (:guid to-save)) ;; FIXME scrape-fn makes that decision
+  (let [process-article (fn [feed cnt article]
+                          (if (or (= article :done) (= article :error))
+                            {:count cnt :status article}
+                            (let [scraped  (io/read-article-scraped feed (:guid article)) ;; FIXME scrape-fn makes that decision
                                   scraped  (if (empty? scraped)
-                                             (scrape/scrape feed to-save)
+                                             (scrape/scrape feed article)
                                              (go scraped))]
-                              (go (io/save-article feed to-save (<! scraped)))
-                              :article-saved)))
-        count-articles  (fn [acc v]
-                          (if (or (= :done v) (= :error v))
-                            {:count acc :status v}
-                            (inc acc)))]
+                              (go (io/save-article feed article (<! scraped)))
+                              (inc cnt))))]
     (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
-    (doseq [[k {link :url feed :name}] @feed-md]
-      (let [articles (chan 1 (map (partial process-article feed)))]
-        (fr/read link articles)
-        (go (let [{status :status count :count} (<! (a/reduce count-articles 0 articles))]
-              (println "core:" (str (name status) ":") count "articles," feed)))))))
+    (doseq [[k {link :url feed :name}] @feed-md
+            :let [articles (fr/read link)]]
+      (go (let [res (<! (a/reduce (partial process-article feed) 0 articles))]
+            (println "core:" (str (-> res :status name) ":") (:count res) "articles," feed))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
 
