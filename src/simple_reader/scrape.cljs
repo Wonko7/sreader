@@ -30,7 +30,7 @@
   (go (let [$ (.load (node/require "cheerio") (<! (get-link (:link rss-entry))))]
         (.html $ selector))))
 
-(def scrape-data
+(def scrape-data ;; should be external to main app, in config somewhere, but I'm the only user so meh for now.
   {"Explosm.net"
    {:scrape-fn (partial simple-scrape "img#main-comic")}
    "Buttersafe"
@@ -39,12 +39,17 @@
    {:scrape-fn (partial simple-scrape "div#comic img")}
    "Send More Paramedics"
    {:scrape-fn (partial simple-scrape "div.post")}
+   "les_joies_du_code();"
+   {:scrape-fn (partial simple-scrape "div.blog-post-content img")}
+   "the_coding_love();"
+   {:scrape-fn (partial simple-scrape "div#post1 img")}
    "LWN.net"
    {:scrape-fn (fn [rss-entry]
                  (let [title (:title rss-entry)]
                    (if (re-find #"^\[\$\]" title)
                      (let [link (:link rss-entry)
-                           link (str/replace link #"(.*)rss$" "$1")]
+                           link (str/replace link #"rss$" "")]
+                       ;(println :link link)
                        (simple-scrape "div.ArticleEntry" {:link link}))
                      (go {}))))
     :overwrite true}

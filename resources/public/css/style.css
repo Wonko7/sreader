@@ -273,5 +273,5 @@ a:active
 }
 
 .scraped img {
-	width: 100%;
+	max-width: 100%;
 }
