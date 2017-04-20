@@ -35,7 +35,7 @@
                               (let [tags-md   (io/load-tags-md)
                                     tag-list  (sort-by #(-> % tags-md :position) (keys tags-md))
                                     get-feeds-by-tag (fn [tag]
-                                                       (sort-by :name (select [ATOM MAP-VALS (fn [v] (some #(= tag %) (:tags v))) :name] feed-md)))]
+                                                       (sort-by first (select [ATOM MAP-VALS (fn [v] (some #(= tag %) (:tags v))) :name] feed-md)))]
                                 {:tag-order tag-list
                                  :tag-metadata tags-md
                                  :tag-content (into {} (map (fn [tag] {tag (get-feeds-by-tag tag)}) tag-list))

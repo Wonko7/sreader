@@ -102,9 +102,10 @@
         articles        (-> @feed-state :articles)
         total           (count articles)
         next-nb         (+ nb cur-nb)
-        next-nb         (cond (< next-nb 0) 0
+        next-nb         (cond (= next-nb -2)    (dec total)
+                              (< next-nb 0)     0
                               (< next-nb total) next-nb
-                              :else (dec total))
+                              :else             (dec total))
         [guid next-nb]  (if guid
                           [guid (count (take-while #(not= guid (:guid %)) articles))]
                           [(:guid (nth articles next-nb)) next-nb])]
