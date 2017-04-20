@@ -17,7 +17,6 @@
 (node/enable-util-print!)
 
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feed-md state :
 
 (def feed-md (atom {}))
@@ -38,7 +37,6 @@
 
 (defn change-article-md [{{feed :feed article :article} :article-id new-md :metadata}]
   "handle article metadata changes"
-  (println :a-md-ch new-md)
   (let [cur-md  (io/read-article-md feed article)
         md       (merge cur-md new-md)]
     (io/save-article-md feed article md)
@@ -46,12 +44,10 @@
 
 (defn get-subscriptions [_]
   "read subscriptions"
-  (println :getting-subs)
   (h/write-json (get-subs-by-tags)))
 
 (defn get-feed [{feed :feed nb :nb :as fixme}]
   "read feeds web client"
-  (println :getting fixme (@feed-md feed))
   (let [metadata (io/load-feed-md feed)
         view     (or (:view-art-status metadata) "unread")
         order    (or (:order metadata)  "oldest then saved")
@@ -76,7 +72,6 @@
 
 (defn change-feed-md [{feed :feed new-md :metadata}]
   "handle feed metadata changes:"
-  (println :f-md-ch feed new-md)
   (let [cur-md  (io/load-feed-md feed)
         md      (merge cur-md new-md)]
     (io/save-feed-md feed md)
@@ -84,7 +79,6 @@
 
 (defn change-tag-md [{tag :tag-id new-md :metadata} ]
   "handle tag metadata changes:"
-  (println :t-md-ch tag new-md)
   (let [cur-md  (io/load-tag-md tag)
         md      (merge cur-md new-md)]
     (io/save-tag-md tag md)
@@ -92,8 +86,7 @@
 
 (defn update-feeds []
   (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
-  (doseq [[k {link :url feed :name}] @feed-md
-          :when (= feed "LWN.net")]
+  (doseq [[k {link :url feed :name}] @feed-md]
     (let [articles (chan)]
       (fr/read link articles)
       (go-loop [to-save (<! articles) cnt 0]
@@ -109,6 +102,7 @@
                                             (go scraped))]
                              (go (io/save-article feed to-save (<! scraped))))
                            (recur (<! articles) (inc cnt))))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
 
@@ -141,8 +135,7 @@
     ;; scrape subscriptions
     (go (while true
           (update-feeds)
-          (<! (timeout (* 1000 60 60)))))
-    ))
+          (<! (timeout (* 1000 60 60)))))))
 
 
 (def -main testing)
