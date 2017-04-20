@@ -87,21 +87,21 @@
                           (>! result-chan :error)
                           (a/close! result-chan)))
     (.on req "response" (fn [result]
-                          (when (not= 200 (.-statusCode result))
-                            (println "feed-reader: HTTP: request: bad status code:" (.-statusCode result) "on:" feed)
-                            (go (>! result-chan :error))) ;; just burn for now.
-                          (let [headers (h/to-clj (.-headers result))
-                                encoding (:content-encoding headers)
-                                charset (:content-type headers)
-                                res (maybe-decompress result encoding feed) ;;FIXME feed only for debug.
-                                res (maybe-translate res charset feed)]
-                            (.pipe res fp))))
+                          (if (not= 200 (.-statusCode result))
+                            (go (println "feed-reader: HTTP: request: bad status code:" (.-statusCode result) "on:" feed)
+                                (>! result-chan :error)
+                                (a/close! result-chan))
+                            (let [headers (h/to-clj (.-headers result))
+                                  encoding (:content-encoding headers)
+                                  charset (:content-type headers)
+                                  res (maybe-decompress result encoding feed) ;;FIXME feed only for debug.
+                                  res (maybe-translate res charset feed)]
+                              (.pipe res fp)))))
     (.on fp "readable" #(this-as this
                                  (go-loop [post (.read this)]
-                                          (when post 
+                                          (when post
                                             (do (>! result-chan (extract-article post))
-                                                (recur (.read this)))
-                                            ))))
+                                                (recur (.read this)))))))
     (.on fp "end" #(go (>! result-chan :done)
                        (a/close! result-chan)))
     (.on fp "error" #(go (println "feed-reader: feed parser error:" feed %)
