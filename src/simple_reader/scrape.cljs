@@ -16,20 +16,15 @@
     (.setHeader req "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36")
     (.setHeader req "accept" "text/html,application/xhtml+xml")
     (.on req "error" #(go (println "scrape: error requesting" link %)
-                          (>! result-chan :error)))
+                          (a/close! result-chan)))
     (.on req "response" (fn [response]
                           (when (not= 200 (.-statusCode response))
                             (println "scrape: HTTP: request: bad status code:" (.-statusCode response) "on:" link)
-                            (go (>! result-chan :error)))
+                            (a/close! result-chan))
                           (.on response "data" #(go (>! result-chan %)))))
-    (.on req "end" #(go (>! result-chan :done)))
+    (.on req "end" #(a/close! result-chan))
 
-    ;; FIXME squash let
-    (go (let [html (js/Buffer.concat (cljs/clj->js (<! (go-loop [part (<! result-chan) buffers []]
-                                                                (if (and (not= part :done) (not= part :error))
-                                                                  (recur (<! result-chan) (concat buffers [part]))
-                                                                  buffers)))))]
-          html))))
+    (go (js/Buffer.concat (cljs/clj->js (<! (a/reduce conj [] result-chan)))))))
 
 (defn simple-scrape [selector rss-entry]
   (go (let [$ (.load (node/require "cheerio") (<! (get-link (:link rss-entry))))]
