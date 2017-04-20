@@ -18,7 +18,7 @@
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feed-md state : 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feed-md state :
 
 (def feed-md (atom {}))
 
@@ -56,7 +56,7 @@
         view     (or (:view-art-status metadata) "unread")
         order    (or (:order metadata)  "oldest then saved")
         articles (io/load-feed feed)
-        articles (condp = view 
+        articles (condp = view
                    "unread"  (let [unread  (filter #(not= "read" (-> % :metadata :status)) articles)
                                    unsaved (filter #(not= "saved" (-> % :metadata :status)) unread)]
                                (if (= 0 (count unsaved))
@@ -90,6 +90,27 @@
     (io/save-tag-md tag md)
     md))
 
+(defn update-feeds []
+  (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
+  (doseq [[k {link :url feed :name}] @feed-md
+          :when (= feed "LWN.net")]
+    (let [articles (chan)]
+      (fr/read link articles)
+      (go-loop [to-save (<! articles) cnt 0]
+               (println (:link to-save))
+               (cond
+                 (= :done to-save)  (do (println "core:" cnt "articles:" feed)
+                                        :done)
+                 (= :error to-save) (do (println "core: error:" cnt "articles:" feed)
+                                        :error)
+                 :else (do (let [scraped  (io/read-article-scraped feed (:guid to-save)) ;; FIXME scrape-fn makes that decision
+                                 scraped  (if (empty? scraped)
+                                            (scrape/scrape feed to-save)
+                                            (go scraped))]
+                             (go (io/save-article feed to-save (<! scraped))))
+                           (recur (<! articles) (inc cnt))))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
 
 (defn testing []
   (let [feed-req    (chan)
@@ -101,45 +122,8 @@
         tag-md-req  (chan)
         tag-md-ans  (chan)
         subs-req    (chan)
-        subs-ans    (chan)
-        ;;
-        update-feeds        (fn []
-                              (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
-                              (go (doseq [[k {link :url feed :name}] @feed-md
-                                          :when (= feed "LWN.net .lol")]
-                                    (let [articles (chan)]
-                                      (fr/read link articles)
-                                      (go-loop [to-save (<! articles) cnt 0]
-                                               (println (:link to-save))
-                                               (cond
-                                                 (= :done to-save)  (do (println "core:" cnt "articles:" feed)
-                                                                        :done)
-                                                 (= :error to-save) (do (println "core: error:" cnt "articles:" feed)
-                                                                        :error)
-                                                 :else (do (let [scraped  (io/read-article-scraped feed (:guid to-save)) ;; FIXME scrape-fn makes that decision
-                                                                 scraped  (if (empty? scraped)
-                                                                            (scrape/scrape feed to-save)
-                                                                            (go scraped))]
-                                                             (go (io/save-article feed to-save (<! scraped))))
-                                                           (recur (<! articles) (inc cnt))))
-                                               )))))
-        ]
-    (go (let [in (chan)]
-          (go (doseq [i (range 5)]
-                (>! in i))
-              (a/close! in)
-              )
-          (println (<! (a/reduce conj [] in)))
-          ))
-    (let [in (chan)
-          out (chan)
-          ]
-      (go (doseq [i (range 10)]
-        (>! in i)))
-      (go (while true
-            (println (<! out))))
-      (a/pipeline 1 out (map inc) in)
-      )
+        subs-ans    (chan)]
+
     (get-subs-by-tags)
     ;; init http
     (http/init feed-req feed-ans

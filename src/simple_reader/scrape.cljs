@@ -26,6 +26,7 @@
 
     ;; FIXME squash let
     (go (let [html (js/Buffer.concat (cljs/clj->js (<! (go-loop [part (<! result-chan) buffers []]
+                                                                (println part)
                                                                 (if (and (not= part :done) (not= part :error))
                                                                   (recur (<! result-chan) (concat buffers [part]))
                                                                   buffers)))))]
