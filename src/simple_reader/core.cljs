@@ -12,7 +12,7 @@
     [simple-reader.scrape :as scrape]
     [com.rpl.specter :as s :refer [collect setval select-one select transform view filterer keypath pred srange ALL ATOM FIRST MAP-VALS]])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
-                   [utils.macros :refer [<? <?? go? go-try dprint]]))
+                   [utils.macros :refer [<? <?? go? go-try dprint try->empty]]))
 
 (node/enable-util-print!)
 
@@ -37,10 +37,10 @@
 
 (defn change-article-md [{{feed :feed article :article} :article-id new-md :metadata}]
   "handle article metadata changes"
-  (let [cur-md  (io/load-article-md feed article)
-        md      (merge cur-md new-md)]
-    (io/save-article-md feed article md)
-    md))
+  (try->empty (let [cur-md  (io/load-article-md feed article)
+                    md      (merge cur-md new-md)]
+                (io/save-article-md feed article md)
+                md)))
 
 (defn get-subscriptions [_]
   "read subscriptions"
@@ -48,56 +48,57 @@
 
 (defn get-feed [{feed :feed nb :nb :as fixme}]
   "read feeds web client"
-  (let [metadata (io/load-feed-md feed)
-        view     (or (:view-art-status metadata) "unread")
-        order    (or (:order metadata)  "oldest then saved")
-        articles (io/load-feed feed)
-        articles (condp = view
-                   "unread"  (let [unread  (filter #(not= "read" (-> % :metadata :status)) articles)
-                                   unsaved (filter #(not= "saved" (-> % :metadata :status)) unread)]
-                               (if (= 0 (count unsaved))
-                                 articles
-                                 unread))
-                   "saved"   (filter #(= "saved" (-> % :metadata :status)) articles)
-                   articles)
-        articles (condp = order
-                   "oldest" (sort-by :date articles)
-                   "newest" (reverse (sort-by :date articles))
-                   (let [unsaved (sort-by :date (filter #(not= "saved" (-> % :metadata :status)) articles))
-                         saved   (sort-by :date (filter #(= "saved" (-> % :metadata :status)) articles))]
-                     (concat unsaved saved)))]
-    (h/write-json {:feed-data {:title feed}
-                   :metadata metadata
-                   :articles articles})))
+  (try->empty (let [metadata (io/load-feed-md feed)
+                    view     (or (:view-art-status metadata) "unread")
+                    order    (or (:order metadata)  "oldest then saved")
+                    articles (io/load-feed feed)
+                    articles (condp = view
+                               "unread"  (let [unread  (filter #(not= "read" (-> % :metadata :status)) articles)
+                                               unsaved (filter #(not= "saved" (-> % :metadata :status)) unread)]
+                                           (if (= 0 (count unsaved))
+                                             articles
+                                             unread))
+                               "saved"   (filter #(= "saved" (-> % :metadata :status)) articles)
+                               articles)
+                    articles (condp = order
+                               "oldest" (sort-by :date articles)
+                               "newest" (reverse (sort-by :date articles))
+                               (let [unsaved (sort-by :date (filter #(not= "saved" (-> % :metadata :status)) articles))
+                                     saved   (sort-by :date (filter #(= "saved" (-> % :metadata :status)) articles))]
+                                 (concat unsaved saved)))]
+                (h/write-json {:feed-data {:title feed}
+                               :metadata metadata
+                               :articles articles}))))
 
 (defn change-feed-md [{feed :feed new-md :metadata}]
   "handle feed metadata changes:"
-  (let [cur-md  (io/load-feed-md feed)
-        md      (merge cur-md new-md)]
-    (io/save-feed-md feed md)
-    md))
+  (try->empty (let [cur-md  (io/load-feed-md feed)
+                    md      (merge cur-md new-md)]
+                (io/save-feed-md feed md)
+                md)))
 
 (defn change-tag-md [{tag :tag-id new-md :metadata} ]
   "handle tag metadata changes:"
-  (let [cur-md  (io/load-tag-md tag)
-        md      (merge cur-md new-md)]
-    (io/save-tag-md tag md)
-    md))
+  (try->empty (let [cur-md  (io/load-tag-md tag)
+                    md      (merge cur-md new-md)]
+                (io/save-tag-md tag md)
+                md)))
 
 (defn update-feeds []
   "scrape subscriptions"
   (let [process-article (fn [feed cnt article]
                           (if (or (= article :done) (= article :error))
                             {:count cnt :status article}
-                            (let [already-scraped (io/load-article-scraped feed (:guid article)) ;; FIXME scrape-fn makes that decision
+                            (let [already-scraped (try->empty (io/load-article-scraped feed (:guid article))) ;; FIXME scrape-fn makes that decision
                                   scraped         (scrape/scrape feed article already-scraped)]
-                              (go (io/save-article feed article (<! scraped)))
+                              (go (try->empty (io/save-article feed article (<! scraped))))
                               (inc cnt))))]
     (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
     (doseq [[k {link :url feed :name}] @feed-md
             :let [articles (fr/read link)]]
       (go (let [res (<! (a/reduce (partial process-article feed) 0 articles))]
             (println "core:" (str (-> res :status name) ":") (:count res) "articles:" feed))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
 

@@ -17,6 +17,7 @@
        ~@body
        (catch js/Object e# (do (aqua-node.log/info (str ~cljs.analyzer/*cljs-file* ":" ~(:line (meta &form))) e#)
                                e#)))))
+
 (defmacro <?? [expr & [{loops :loops
                         timeout-val :timeout secs :secs mins :mins ;; default is 30 secs
                         return-value :ret-val return-fn :return-fn result-chan :chan
@@ -70,3 +71,10 @@
      (println :body '~@body)
      (println :result result#)
      result#))
+
+(defmacro try->empty [& body]
+  "returns {} on exception after printing error."
+  `(try
+     ~@body
+     (catch js/Object e# (do (println (str ~cljs.analyzer/*cljs-file* ":" ~(:line (meta &form))) e#)
+                             {}))))
