@@ -27,8 +27,12 @@
     (go (js/Buffer.concat (cljs/clj->js (<! (a/reduce conj [] result-chan)))))))
 
 (defn simple-scrape [selector rss-entry]
-  (go (let [$ (.load (node/require "cheerio") (<! (get-link (:link rss-entry))))]
-        (.html $ selector))))
+  (go (if (:link rss-entry)
+        (let [$       (.load (node/require "cheerio") (<! (get-link (:link rss-entry))))
+              scraped (.html $ selector)]
+          (or scraped {}))
+        (do (println "scrape: error: no link in:" rss-entry)
+            {}))))
 
 (def scrape-data ;; should be external to main app, in config somewhere, but I'm the only user so meh for now.
   {"Explosm.net"
@@ -49,7 +53,6 @@
                    (if (re-find #"^\[\$\]" title)
                      (let [link (:link rss-entry)
                            link (str/replace link #"rss$" "")]
-                       ;(println :link link)
                        (simple-scrape "div.ArticleEntry" {:link link}))
                      (go {}))))
     :overwrite true}
@@ -58,13 +61,15 @@
                  (go (let [$ (.load (node/require "cheerio") (<! (get-link link)))
                            img (-> ($ "meta[property='og:image']")
                                    (.attr "content"))]
-                     (str "<img src=\"" img "\">"))))}
+                       (if (nil? img)
+                         {}
+                         (str "<img src=\"" img "\">")))))}
    })
 
-(defn scrape [feed article]
-  (go (if-let [scrape-fn (-> feed scrape-data :scrape-fn)]
-        (let [scraped-data (<! (scrape-fn article))]
-          (if (not= {} scraped-data)
-            {:scraped-data scraped-data}
-            {}))
-        {})))
+(defn scrape [feed article already-scraped]
+  (go (let [scrape-md (-> feed scrape-data)]
+        (if (or (and (:scraped-data already-scraped) (not (:overwrite scrape-md))) ;; already scraped
+                (nil? scrape-md)) ;; feed has no scraping to do
+          {}
+          (let [scraped-data (<! ((:scrape-fn scrape-md) article))]
+            {:scraped-data scraped-data})))))

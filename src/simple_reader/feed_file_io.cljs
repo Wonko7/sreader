@@ -78,7 +78,7 @@
   (write-article-md (js/encodeURIComponent feed) (js/encodeURIComponent article) md))
 
 (defn load-article-scraped [feed article]
-  (read-article-scraped (js/encodeURIComponent feed) article))
+  (read-article-scraped (js/encodeURIComponent feed) (js/encodeURIComponent article)))
 
 (defn save-article-scraped [feed article md] ;; unused for now
   (write-article-scraped (js/encodeURIComponent feed) (js/encodeURIComponent article) md))
@@ -144,9 +144,8 @@
           cur-md (read-article-md feed-id art-id)]
       (write-json-file art-path (dissoc article :metadata))
       (write-article-md feed-id art-id (merge def-md cur-md new-md))
-      (when scraped
+      (when-not (empty? (:scraped-data scraped))
         (write-article-scraped feed-id art-id scraped)))))
-
 
 (defn load-feed [feed]
   (let [feed-id         (js/encodeURIComponent feed)

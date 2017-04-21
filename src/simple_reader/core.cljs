@@ -37,8 +37,8 @@
 
 (defn change-article-md [{{feed :feed article :article} :article-id new-md :metadata}]
   "handle article metadata changes"
-  (let [cur-md  (io/read-article-md feed article)
-        md       (merge cur-md new-md)]
+  (let [cur-md  (io/load-article-md feed article)
+        md      (merge cur-md new-md)]
     (io/save-article-md feed article md)
     md))
 
@@ -89,17 +89,15 @@
   (let [process-article (fn [feed cnt article]
                           (if (or (= article :done) (= article :error))
                             {:count cnt :status article}
-                            (let [scraped  (io/read-article-scraped feed (:guid article)) ;; FIXME scrape-fn makes that decision
-                                  scraped  (if (empty? scraped)
-                                             (scrape/scrape feed article)
-                                             (go scraped))]
+                            (let [already-scraped (io/load-article-scraped feed (:guid article)) ;; FIXME scrape-fn makes that decision
+                                  scraped         (scrape/scrape feed article already-scraped)]
                               (go (io/save-article feed article (<! scraped)))
                               (inc cnt))))]
     (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
     (doseq [[k {link :url feed :name}] @feed-md
             :let [articles (fr/read link)]]
       (go (let [res (<! (a/reduce (partial process-article feed) 0 articles))]
-            (println "core:" (str (-> res :status name) ":") (:count res) "articles," feed))))))
+            (println "core:" (str (-> res :status name) ":") (:count res) "articles:" feed))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
 
