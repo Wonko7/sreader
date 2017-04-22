@@ -342,12 +342,11 @@
               :else-nothing
               ))))))
 
-;; init a page:
 (defn init []
+  "init a page, based on url pathname if present"
   (let [url (str/replace (-> js/window .-location .-pathname) #"^/feed/(.*)/$" "$1")]
-    (println url)
     (request-subscriptions)
-    (if url
+    (if (not= url "/")
       (request-feed url)
       (request-feed "FMyLife"))))
 
