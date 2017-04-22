@@ -34,8 +34,6 @@ body {
 #subscriptions .feeds {
 	padding: 1em;
 	background: #002b36;
-	border-width: 0px;
-	border-radius: .5em;
 }
 .subscription {
 	display: flex;

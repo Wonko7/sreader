@@ -59,14 +59,14 @@
 
 
 (defn change-article-md [feed art-id md]
-  (go (let [new-md      (:body (<! (http/post (str "/md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
+  (go (let [new-md      (:body (<! (http/post (str "/a-md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
         (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata)
         new-md)))
 
 (defn toggle-tag-md [tag key]
   (go (let [k-val       (select-one [ATOM (keypath tag) ATOM (keypath key)] tags-metadata)
             k-val       (if k-val (not k-val) true)
-            new-md      (:body (<! (http/post (str "/tag-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
+            new-md      (:body (<! (http/post (str "/t-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
         (transform [ATOM (keypath tag) ATOM] #(merge % new-md) tags-metadata))))
 
 (defn change-article-status-md [new-state & [gguid]]
@@ -146,7 +146,7 @@
      [:a {:on-click #(toggle-tag-md tag :visible?)
           :href "javascript:void(0)"} (str (if v? "▾ " "▸ ") tag)]
      [:a.sub-show-all {:on-click #(swap! show-all not)
-                       :href "javascript:void(0)"} (str (if @show-all " - " " + "))]
+                       :href "javascript:void(0)"} (str (if @show-all " ▾" " ◂"))]
      (when v?
        (for [f feeds]
          (rum/with-key (mk-sub f @show-all) f)))]))

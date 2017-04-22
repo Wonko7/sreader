@@ -35,13 +35,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Process client requests:
 
-(defn change-article-md [{{feed :feed article :article} :article-id new-md :metadata}]
-  "handle article metadata changes"
-  (try->empty (let [cur-md  (io/load-article-md feed article)
-                    md      (merge cur-md new-md)]
-                (io/save-article-md feed article md)
-                md)))
-
 (defn get-subscriptions [_]
   "read subscriptions"
   (h/write-json (get-subs-by-tags)))
@@ -70,14 +63,21 @@
                                :metadata metadata
                                :articles articles}))))
 
-(defn change-feed-md [{feed :feed new-md :metadata}]
+(defn change-article-md [{{feed :feed article :article} :id new-md :metadata}]
+  "handle article metadata changes"
+  (try->empty (let [cur-md  (io/load-article-md feed article)
+                    md      (merge cur-md new-md)]
+                (io/save-article-md feed article md)
+                md)))
+
+(defn change-feed-md [{{feed :feed} :id new-md :metadata}]
   "handle feed metadata changes:"
   (try->empty (let [cur-md  (io/load-feed-md feed)
                     md      (merge cur-md new-md)]
                 (io/save-feed-md feed md)
                 md)))
 
-(defn change-tag-md [{tag :tag-id new-md :metadata} ]
+(defn change-tag-md [{{tag :tag} :id new-md :metadata} ]
   "handle tag metadata changes:"
   (try->empty (let [cur-md  (io/load-tag-md tag)
                     md      (merge cur-md new-md)]
