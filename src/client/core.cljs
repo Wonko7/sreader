@@ -1,5 +1,6 @@
 (ns client.core
-  (:require [rum.core :as rum]
+  (:require [clojure.string :as str]
+            [rum.core :as rum]
             [cljs-http.client :as http]
             [cognitect.transit :as json]
             [cljs.core.async :refer [chan <! >!] :as a]
@@ -341,9 +342,16 @@
               :else-nothing
               ))))))
 
-;; init a page, fixme:
-(request-subscriptions)
-(request-feed "FMyLife")
+;; init a page:
+(defn init []
+  (let [url (str/replace (-> js/window .-location .-pathname) #"^/feed/(.*)/$" "$1")]
+    (println url)
+    (request-subscriptions)
+    (if url
+      (request-feed url)
+      (request-feed "FMyLife"))))
+
+(init)
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

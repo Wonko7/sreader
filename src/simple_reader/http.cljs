@@ -30,6 +30,7 @@
     (.use app (.json bodyparser))
     (.use app (.urlencoded bodyparser (h/to-js {:extended true})))
     (.use app "/" (.static express "resources/public/"))
+    (.use app "/feed/:whatever" (.static express "resources/public/"))
     (.get app "/f/:feed/" request-feed)
     (.get app "/f/:feed/:nb" request-feed)
     (.get app "/subs/" (fn [req res]
