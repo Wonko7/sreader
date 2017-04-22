@@ -5,6 +5,8 @@
             [cognitect.transit :as json]
             [cljs.core.async :refer [chan <! >!] :as a]
             [com.rpl.specter :as s :refer [setval select-one select transform must if-path cond-path multi-transform multi-path filterer keypath pred submap terminal-val terminal srange ALL ATOM FIRST MAP-VALS]]
+            [secretary.core :as secretary :refer-macros [defroute]]
+            ;; me
             [simple-reader.helpers :as h]
             ;; goog
             [goog.events :as events]
@@ -134,7 +136,7 @@
                         :div.subscription)]
     (when (or show-all (or (> unread 0) (> saved 0)))
       [div {:on-click #(request-feed feed)}
-       [:div.sub-title [a {:href "javascript:void(0)"} feed]]
+       [:div.sub-title [a {:href (str "/feed/" feed)} feed]]
        [:div.sub-count.small unread]])))
 
 (rum/defcs mk-tag < rum/reactive
@@ -349,6 +351,13 @@
     (if (not= url "/")
       (request-feed url)
       (request-feed "FMyLife"))))
+
+(defroute "/feed/:feed" {:as params}
+  (println :route (:feed params)))
+
+(let [h (History.)]
+  (goog.events/listen h EventType/NAVIGATE #(secretary/dispatch! (.-token %)))
+  (doto h (.setEnabled true)))
 
 (init)
 
