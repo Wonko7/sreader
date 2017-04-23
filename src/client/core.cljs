@@ -10,9 +10,12 @@
             [simple-reader.helpers :as h]
             ;; goog
             [goog.events :as events]
+            [goog.history.EventType :as EventType]
+            [goog.events :as events]
             )
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
-                   [utils.macros :refer [<? <?? go? go-try dprint]]))
+                   [utils.macros :refer [<? <?? go? go-try dprint]])
+  (:import goog.History))
 
 (enable-console-print!)
 
@@ -135,8 +138,8 @@
                         :div.subscription.selected
                         :div.subscription)]
     (when (or show-all (or (> unread 0) (> saved 0)))
-      [div {:on-click #(request-feed feed)}
-       [:div.sub-title [a {:href (str "/feed/" feed)} feed]]
+      [div ;{:on-click #(request-feed feed)}
+       [:div.sub-title [a {:href (str "#/feed/" (js/encodeURIComponent feed))} feed]]
        [:div.sub-count.small unread]])))
 
 (rum/defcs mk-tag < rum/reactive
@@ -259,7 +262,9 @@
 
 (defn select-search-feed []
   (when-let [n    (:nth @search-state)]
-    (request-feed (nth (:results @search-state) n)))
+    ;(request-feed (nth (:results @search-state) n))
+    (secretary/dispatch! (str "/feed/" (js/encodeURIComponent (nth (:results @search-state) n))))
+    )
   (reset! search-state {:visible false}))
 
 (defn search [text]
@@ -353,10 +358,11 @@
       (request-feed "FMyLife"))))
 
 (defroute "/feed/:feed" {:as params}
-  (println :route (:feed params)))
+  (println :here (:feed params))
+  (request-feed (-> params :feed js/decodeURIComponent)))
 
 (let [h (History.)]
-  (goog.events/listen h EventType/NAVIGATE #(secretary/dispatch! (.-token %)))
+  (goog.events/listen h EventType/NAVIGATE #(do (println (-> % .-token)) (secretary/dispatch! (-> % .-token))))
   (doto h (.setEnabled true)))
 
 (init)
