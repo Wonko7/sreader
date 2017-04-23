@@ -166,3 +166,12 @@
            (.readdirSync FS)
            (map load-art)
            (filter identity)))))
+
+(defn rm-article [feed article]
+  (let [feed    (js/encodeURIComponent feed)
+        article (js/encodeURIComponent article)
+        apath   (mk-root-path "feeds" feed article)]
+    (doall (->> apath
+                (.readdirSync FS)
+                (map #(.unlinkSync FS (.join Path apath %)))))
+    (.rmdirSync FS apath)))
