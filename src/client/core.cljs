@@ -28,6 +28,7 @@
 (defonce feed-state (atom {:feed-data {:title "Loading..."}}))
 (defonce article-metadata (atom {}))
 (defonce search-state (atom {:visible false}))
+(def HISTORY (History.))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
@@ -262,9 +263,7 @@
 
 (defn select-search-feed []
   (when-let [n    (:nth @search-state)]
-    ;(request-feed (nth (:results @search-state) n))
-    (secretary/dispatch! (str "/feed/" (js/encodeURIComponent (nth (:results @search-state) n))))
-    )
+    (.setToken HISTORY (str "/feed/" (js/encodeURIComponent (nth (:results @search-state) n)))))
   (reset! search-state {:visible false}))
 
 (defn search [text]
@@ -349,21 +348,19 @@
               :else-nothing
               ))))))
 
-(defn init []
-  "init a page, based on url pathname if present"
-  (let [url (str/replace (-> js/window .-location .-pathname) #"^/feed/(.*)/$" "$1")]
-    (request-subscriptions)
-    (if (not= url "/")
-      (request-feed url)
-      (request-feed "FMyLife"))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; init, takes care of setting up history:
 
 (defroute "/feed/:feed" {:as params}
-  (println :here (:feed params))
   (request-feed (-> params :feed js/decodeURIComponent)))
+;; FIXME add / route
 
-(let [h (History.)]
-  (goog.events/listen h EventType/NAVIGATE #(do (println (-> % .-token)) (secretary/dispatch! (-> % .-token))))
-  (doto h (.setEnabled true)))
+(defn init []
+  "init history, load subscriptions"
+  (let [url (str/replace (-> js/window .-location .-pathname) #"^/feed/(.*)/$" "$1")]
+    (request-subscriptions)
+    (goog.events/listen HISTORY EventType/NAVIGATE #(secretary/dispatch! (-> % .-token)))
+    (doto HISTORY (.setEnabled true))))
 
 (init)
 
