@@ -2,8 +2,9 @@
 (ns simple-reader.core
   (:require
     [cljs.nodejs :as node]
-    [simple-reader.feedreader :as fr]
     [cljs.core.async :refer [timeout chan <! >!] :as a]
+    [clojure.set :as set]
+    [simple-reader.feedreader :as fr]
     [simple-reader.helpers :as h]
     [simple-reader.render :as html]
     [cognitect.transit :as json]
@@ -86,18 +87,24 @@
 
 (defn update-feeds []
   "scrape subscriptions"
-  (let [process-article (fn [feed cnt article]
+  (let [process-article (fn [feed {cnt :count kept-articles :kept} article]
                           (if (or (= article :done) (= article :error))
-                            {:count cnt :status article}
+                            {:count cnt :status article :kept kept-articles}
                             (let [already-scraped (try->empty (io/load-article-scraped feed (:guid article))) ;; FIXME scrape-fn makes that decision
                                   scraped         (scrape/scrape feed article already-scraped)]
                               (go (try->empty (io/save-article feed article (<! scraped))))
-                              (inc cnt))))]
+                              {:count (inc cnt) :kept (conj kept-articles (:guid article))})))
+        purge           (fn [feed to-keep]
+                          (let [all       (try->empty (io/load-feed feed))
+                                all       (into #{} (select [ALL #(= "read" (-> % :metadata :status)) :guid] all))
+                                out-dated (set/difference all to-keep)]
+                            (map #(try->empty (io/rm-article feed %)) out-dated)))]
     (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
     (doseq [[k {link :url feed :name}] @feed-md
             :let [articles (fr/read link)]]
-      (go (let [res (<! (a/reduce (partial process-article feed) 0 articles))]
-            (println "core:" (str (-> res :status name) ":") (:count res) "articles:" feed))))))
+      (go (let [res       (<! (a/reduce (partial process-article feed) {:kept #{} :count 0} articles))
+                purged    (purge feed (:kept res))]
+            (println "core:" (str (-> res :status name) ":") (:count res) "articles:" feed " -- purged:" (count purged)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
