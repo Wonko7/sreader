@@ -94,17 +94,18 @@
                                   scraped         (scrape/scrape feed article already-scraped)]
                               (go (try->empty (io/save-article feed article (<! scraped))))
                               {:count (inc cnt) :kept (conj kept-articles (:guid article))})))
-        purge           (fn [feed to-keep]
-                          (let [all       (try->empty (io/load-feed feed))
-                                all       (into #{} (select [ALL #(= "read" (-> % :metadata :status)) :guid] all))
-                                out-dated (set/difference all to-keep)]
-                            (map #(try->empty (io/rm-article feed %)) out-dated)))]
+        purge           (fn [feed {status :status to-keep :kept}]
+                          (when (= status :done)
+                            (let [all       (try->empty (io/load-feed feed))
+                                  read      (into #{} (select [ALL #(= "read" (-> % :metadata :status)) :guid] all))
+                                  out-dated (set/difference read to-keep)]
+                              (map #(try->empty (io/rm-article feed %)) out-dated))))]
     (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
     (doseq [[k {link :url feed :name}] @feed-md
             :let [articles (fr/read link)]]
       (go (let [res       (<! (a/reduce (partial process-article feed) {:kept #{} :count 0} articles))
-                purged    (purge feed (:kept res))]
-            (println "core:" (str (-> res :status name) ":") (:count res) "articles:" feed "-- purged:" (count purged)))))))
+                purged    (purge feed res)]
+            (println "core:" (-> res :status name (str ":")) (:count res) "articles:" feed "-- purged:" (count purged)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
