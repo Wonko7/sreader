@@ -175,7 +175,7 @@
        (rum/with-key (mk-tag tag feeds) tag))]))
 
 (rum/mount (mk-subscriptions)
-           (. js/document (getElementById "subscriptions")))
+           (. js/document (getElementById "subscriptions-anchor")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feeds!
@@ -254,7 +254,7 @@
         (rum/with-key (mk-article a) rum-key))]]))
 
 (rum/mount (mk-feed)
-           (. js/document (getElementById "feed")))
+           (. js/document (getElementById "feed-anchor")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; search:

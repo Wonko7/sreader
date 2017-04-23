@@ -68,8 +68,8 @@
   (let [hum-date (node/require "human-date")
         article (h/to-clj article-in)]
     {:title         (:title article)
-     :date          (:date article)
-     :pretty-date   (.prettyPrint hum-date (:date article))
+     :date          (:pubdate article)
+     :pretty-date   (.prettyPrint hum-date (:pubdate article))
      :description   (:description article)
      :link          (:link article)
      :guid          (:guid article)}))

@@ -23,15 +23,16 @@ body {
 	height: 100vh;
 	flex-direction: row;
 }
-#subscriptions {
+#subscriptions-anchor {
 	flex: 0 0 20%;
 	overflow-y: scroll;
 }
-#feed {
+#feed-anchor {
 	flex: 2;
 	height: 100vh;
 }
-#subscriptions .feeds {
+
+#subscriptions-anchor .feeds {
 	padding: 1em;
 	background: #002b36;
 }
@@ -76,10 +77,10 @@ body {
 	color: #93a1a1;
 }
 
-.tag .subscription a.grey:link,
-.tag .subscription a.grey:visited,
-.tag .subscription a.grey:hover,
-.tag .subscription a.grey:active
+a.grey:link,
+a.grey:visited,
+a.grey:hover,
+a.grey:active
 {
 	color: #888888;
 }
