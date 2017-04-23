@@ -91,11 +91,11 @@
                           cur-state (dec cur-count)
                           cur-count))]
     (if (and guid (not= new-state cur-state))
-      (do
-        (multi-transform [ATOM (keypath feed) ATOM (multi-path [:unread-count (terminal #(update-count "unread" %))]
-                                                               [:saved-count (terminal #(update-count "saved" %))])]
-                         subscriptions-state)
-        (change-article-md feed guid {:status new-state}))
+      (go (let [result-md (:status (<! (change-article-md feed guid {:status new-state})))]
+            (when (= new-state result-md)
+              (multi-transform [ATOM (keypath feed) ATOM (multi-path [:unread-count (terminal #(update-count "unread" %))]
+                                                                     [:saved-count (terminal #(update-count "saved" %))])]
+                               subscriptions-state))))
       (go :nothing-was-done))))
 
 
