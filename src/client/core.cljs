@@ -233,8 +233,7 @@
       [:div.feed-count.small (:unread-count sub-state)]]
      [:div.feed-controls
       (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
-      (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]]
-    ))
+      (mk-select view view-values #(change-feed-md ftitle {:view-art-status (-> % .-target .-value)}))]]))
 
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
@@ -252,8 +251,7 @@
      [:div#feed-content
       (for [a articles
             :let [rum-key (:guid a)]]
-        (rum/with-key (mk-article a) rum-key)
-        )]]))
+        (rum/with-key (mk-article a) rum-key))]]))
 
 (rum/mount (mk-feed)
            (. js/document (getElementById "feed")))
@@ -345,8 +343,7 @@
               "g" (let [dom-node (. js/document (getElementById "feed-content"))]
                     (set! (.-scrollTop dom-node) 0))
               "f" (transform [ATOM :visible?] not tags-state)
-              :else-nothing
-              ))))))
+              :else-nothing))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; init, takes care of setting up history:
@@ -357,10 +354,9 @@
 
 (defn init []
   "init history, load subscriptions"
-  (let [url (str/replace (-> js/window .-location .-pathname) #"^/feed/(.*)/$" "$1")]
-    (request-subscriptions)
-    (goog.events/listen HISTORY EventType/NAVIGATE #(secretary/dispatch! (-> % .-token)))
-    (doto HISTORY (.setEnabled true))))
+  (request-subscriptions)
+  (goog.events/listen HISTORY EventType/NAVIGATE #(secretary/dispatch! (-> % .-token)))
+  (doto HISTORY (.setEnabled true)))
 
 (init)
 
