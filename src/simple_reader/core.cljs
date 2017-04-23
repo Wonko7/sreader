@@ -104,7 +104,7 @@
             :let [articles (fr/read link)]]
       (go (let [res       (<! (a/reduce (partial process-article feed) {:kept #{} :count 0} articles))
                 purged    (purge feed (:kept res))]
-            (println "core:" (str (-> res :status name) ":") (:count res) "articles:" feed " -- purged:" (count purged)))))))
+            (println "core:" (str (-> res :status name) ":") (:count res) "articles:" feed "-- purged:" (count purged)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
