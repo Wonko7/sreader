@@ -140,9 +140,7 @@
     (a/pipeline 1 tag-md-ans (map change-tag-md) tag-md-req)
 
     (go (while true
-          ;(update-feeds)
-          (try->empty (let [CP (node/require "child_process")]
-                        (.execSync CP "tar" "-xavf" "feeds.tgz")))
-          (<! (timeout (* 1000 60 15)))))))
+          (update-feeds)
+          (<! (timeout (* 1000 60 60)))))))
 
 (set! *main-cli-fn* -main)
