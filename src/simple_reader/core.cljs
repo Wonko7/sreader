@@ -6,7 +6,6 @@
     [clojure.set :as set]
     [simple-reader.feedreader :as fr]
     [simple-reader.helpers :as h]
-    [simple-reader.render :as html]
     [cognitect.transit :as json]
     [simple-reader.feed-file-io :as io]
     [simple-reader.http :as http]

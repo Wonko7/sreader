@@ -64,7 +64,7 @@
 
 
 (defn extract-article [article-in]
-  "read articles one by one and render the html" ;; fixme some map chan magic
+  "read articles one by one, extract things we want"
   (let [hum-date (node/require "human-date")
         article (h/to-clj article-in)]
     {:title         (:title article)
