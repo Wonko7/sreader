@@ -350,7 +350,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; init, takes care of setting up history:
 
-(defroute (str sub-route "/feed/:feed") {:as params}
+(defroute (str sub-route "#/feed/:feed") {:as params}
   (request-feed (-> params :feed js/decodeURIComponent)))
 ;; FIXME add / route
 
