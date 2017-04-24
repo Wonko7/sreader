@@ -29,7 +29,7 @@
 (defonce article-metadata (atom {}))
 (defonce search-state (atom {:visible false}))
 (def HISTORY (History.))
-(def sub-route "")
+(def sub-route "/sreader")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
