@@ -35,7 +35,9 @@
 
 (defn mk-youtube-embedded [{link :link}]
   (let [embed-link (str/replace link #"/watch\?v=" "/embed/")]
-    (go (str "<iframe width=\"100%\" height=\"315\" src=\"" embed-link "\"> </iframe>"))))
+    (go (str "<div class=\"video-wrapper\">" ;; if we end up doing more of this we'll need a templating lib.
+             "<iframe src=\"" embed-link "\"> </iframe>"
+             "</div>"))))
 
 (def scrape-data ;; should be external to main app, in config somewhere, but I'm the only user so meh for now.
   {"Explosm.net"
