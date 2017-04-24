@@ -351,7 +351,10 @@
 
 (defroute "/feed/:feed" {:as params}
   (request-feed (-> params :feed js/decodeURIComponent)))
-;; FIXME add / route
+
+(defroute "/" {:as params}
+  (go (<! (request-feed "SReader"))
+      (change-article 1)))
 
 (defn init []
   "init history, load subscriptions"
