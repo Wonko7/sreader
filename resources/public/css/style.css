@@ -35,6 +35,7 @@ body {
 #subscriptions-anchor .feeds {
 	padding: 1em;
 	background: #002b36;
+	min-height: 100%;
 }
 .subscription {
 	display: flex;
