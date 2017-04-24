@@ -4,8 +4,7 @@
             [cljs.core.async :refer [chan <! >!] :as a]
             [clojure.string :as str]
             [simple-reader.helpers :as h]
-            [simple-reader.feedreader :as fr]
-            )
+            [simple-reader.feedreader :as fr])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
                    [utils.macros :refer [<? <?? go? go-try dprint]]))
 
@@ -33,6 +32,10 @@
           (or scraped {}))
         (do (println "scrape: error: no link in:" rss-entry)
             {}))))
+
+(defn mk-youtube-embedded [{link :link}]
+  (let [embed-link (str/replace link #"/watch\?v=" "/embed/")]
+    (go (str "<iframe width=\"100%\" height=\"315\" src=\"" embed-link "\"> </iframe>"))))
 
 (def scrape-data ;; should be external to main app, in config somewhere, but I'm the only user so meh for now.
   {"Explosm.net"
@@ -64,6 +67,12 @@
                        (if (nil? img)
                          {}
                          (str "<img src=\"" img "\">")))))}
+   "Last Week Tonight"
+   {:scrape-fn mk-youtube-embedded}
+   "Explosm Shorts"
+   {:scrape-fn mk-youtube-embedded}
+   "Cyriak"
+   {:scrape-fn mk-youtube-embedded}
    })
 
 (defn scrape [feed article already-scraped]

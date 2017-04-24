@@ -89,6 +89,9 @@
 (defn save-feed-md [feed md]
   (write-data-file ["feeds" (js/encodeURIComponent feed) "metadata"] md))
 
+(defn save-feed-fmd [feed md]
+  (write-data-file ["feeds" (js/encodeURIComponent feed) "feed-metadata"] md))
+
 (defn load-tag-md [tag]
   (read-data-file ["tags" tag "metadata"]))
 

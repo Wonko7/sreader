@@ -101,8 +101,11 @@
                                   out-dated (set/difference read to-keep)]
                               (map #(try->empty (io/rm-article feed %)) out-dated))))]
     (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
-    (doseq [[k {link :url feed :name}] @feed-md
-            :let [articles (fr/read link)]]
+    (doseq [[k {link :url feed :name www-link :www-link :as fmd}] @feed-md
+            :let [[feed-meta articles] (fr/read link)]]
+      (go (let [new-link (:link (<! feed-meta))]
+            (when (not= new-link www-link)
+              (try->empty (io/save-feed-fmd feed (merge (dissoc fmd :unread-count :saved-count) {:www-link new-link}))))))
       (go (let [res       (<! (a/reduce (partial process-article feed) {:kept #{} :count 0} articles))
                 purged    (purge feed res)]
             (println "core:" (-> res :status name (str ":")) (:count res) "articles:" feed "-- purged:" (count purged)))))))

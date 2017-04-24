@@ -77,35 +77,34 @@
 
 (defn read [feed]
   "Will read each value from the given feed address and them to the returned channel"
-  (let [result-chan (chan)
-        req         ((node/require "request") feed (cljs/clj->js {:timeout 50000 :pool false}))
-        fp          (node/require "feedparser")
-        fp          (new fp)]
+  (let [articles        (chan)
+        feed-md         (chan)
+        put-and-close!  (fn [ch el & [msg]]
+                          (when msg (println msg))
+                          (go (>! ch el)
+                              (a/close! ch)))
+        req             ((node/require "request") feed (cljs/clj->js {:timeout 50000 :pool false}))
+        fp              (node/require "feedparser")
+        fp              (new fp)]
     (.setMaxListeners req 50)
     (.setHeader req "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36")
     (.setHeader req "accept" "text/html,application/xhtml+xml")
-    (.on req "error" #(go (println "feed-reader: error requesting" feed %)
-                          (>! result-chan :error)
-                          (a/close! result-chan)))
+    (.on req "error" #(put-and-close! articles :error (pr-str "feed-reader: error requesting" feed %)))
     (.on req "response" (fn [result]
                           (if (not= 200 (.-statusCode result))
-                            (go (println "feed-reader: HTTP: request: bad status code:" (.-statusCode result) "on:" feed)
-                                (>! result-chan :error)
-                                (a/close! result-chan))
+                            (put-and-close! articles :error (pr-str "feed-reader: HTTP: request: bad status code:" (.-statusCode result) "on:" feed))
                             (let [headers (h/to-clj (.-headers result))
                                   encoding (:content-encoding headers)
                                   charset (:content-type headers)
                                   res (maybe-decompress result encoding feed) ;;FIXME feed only for debug.
                                   res (maybe-translate res charset feed)]
                               (.pipe res fp)))))
+    (.on fp "meta" #(put-and-close! feed-md (h/to-clj %)))
     (.on fp "readable" #(this-as this
                                  (go-loop [post (.read this)]
                                           (when post
-                                            (do (>! result-chan (extract-article post))
+                                            (do (>! articles (extract-article post))
                                                 (recur (.read this)))))))
-    (.on fp "end" #(go (>! result-chan :done)
-                       (a/close! result-chan)))
-    (.on fp "error" #(go (println "feed-reader: feed parser error:" feed %)
-                         (>! result-chan :error)
-                         (a/close! result-chan)))
-    result-chan))
+    (.on fp "end" #(put-and-close! articles :done))
+    (.on fp "error" #(put-and-close! articles :error (pr-str "feed-reader: feed parser error:" feed %)))
+    [feed-md articles]))

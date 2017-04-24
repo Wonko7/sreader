@@ -175,7 +175,7 @@
        (rum/with-key (mk-tag tag feeds) tag))]))
 
 (rum/mount (mk-subscriptions)
-           (. js/document (getElementById "subscriptions-anchor")))
+           (.getElementById js/document "subscriptions-anchor"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; feeds!
@@ -200,7 +200,7 @@
                                           [:div.article "unread"])]
     [art-div-style {:tab-index -1 :style {:outline 0}
                     :on-click (when-not visible? #(change-article 0 id))}
-     [:a.title {:href (if visible? link "javascript:void(0)")} title]
+     [:a.title {:href link :target "_blank"} title]
      [:br]
      [:div.article-info.small [:div.date date] [:div.artical-satus art-read-status]]
      [:div.content {:style {:display (if visible? "" "none")}}
@@ -217,6 +217,7 @@
         sub-state     (if feed-exists?
                         (rum/react feed-exists?)
                         {:unread-count ""})
+        feed-www      (:www-link sub-state)
         ;; feed select controls:
         order         (or (:order f-md) "oldest then saved")
         order-values  ["oldest" "newest" "oldest then saved"]
@@ -229,7 +230,7 @@
                            [:option {:value v} v])])]
     [:div.feed-title-wrapper {:style {:display (if visible? "" "none")}}
      [div-title
-      [:div.title-only ftitle]
+      [:div.title-only [:a.grey {:href feed-www :target "_blank"} ftitle]]
       [:div.feed-count.small (:unread-count sub-state)]]
      [:div.feed-controls
       (mk-select order order-values #(change-feed-md ftitle {:order (-> % .-target .-value)}))
@@ -238,7 +239,7 @@
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
                                     "focus on feed change"
-                                    (let [feed-node (. js/document (getElementById "feed-content"))]
+                                    (let [feed-node (.getElementById js/document "feed-content")]
                                       (.focus feed-node)
                                       (set! (.-scrollTop feed-node) 0)
                                       state))}
@@ -254,7 +255,7 @@
         (rum/with-key (mk-article a) rum-key))]]))
 
 (rum/mount (mk-feed)
-           (. js/document (getElementById "feed-anchor")))
+           (.getElementById js/document "feed-anchor"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; search:
@@ -310,7 +311,7 @@
         [:div (vec res)]]])))
 
 (rum/mount (mk-search)
-           (. js/document (getElementById "search-anchor")))
+           (.getElementById js/document "search-anchor"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; keyboard:
@@ -338,9 +339,9 @@
               "v" (do (let [guid (select-one [ATOM :selected :guid] article-metadata)
                             link (select-one [ATOM :articles ALL #(= guid (:guid %)) :link] feed-state)] ;; specter is awesome, my state structure isn't.
                         (.open js/window link))) ;; FIXME: for this to work in chrome (tab instead of pop up), we'd need to .open in the listen callback, which is annoying.
-              "G" (let [dom-node (. js/document (getElementById "feed-content"))]
+              "G" (let [dom-node (.getElementById js/document "feed-content")]
                     (set! (.-scrollTop dom-node) (.-scrollHeight dom-node)))
-              "g" (let [dom-node (. js/document (getElementById "feed-content"))]
+              "g" (let [dom-node (.getElementById js/document "feed-content")]
                     (set! (.-scrollTop dom-node) 0))
               "f" (transform [ATOM :visible?] not tags-state)
               :else-nothing))))))

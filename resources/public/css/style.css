@@ -84,6 +84,13 @@ a.grey:active
 {
 	color: #888888;
 }
+.subscription a.grey:link, /*whyyyy*/
+.subscription a.grey:visited,
+.subscription a.grey:hover,
+.subscription a.grey:active
+{
+	color: #888888;
+}
 .tag .selected {
 	background: #073642;
 	border-width: 0px;
