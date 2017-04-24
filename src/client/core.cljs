@@ -29,7 +29,7 @@
 (defonce article-metadata (atom {}))
 (defonce search-state (atom {:visible false}))
 (def HISTORY (History.))
-(def sub-route "")
+(def PATH-PREFIX "")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; get stuff:
@@ -44,7 +44,7 @@
     feed-state))
 
 (defn request-subscriptions []
-  (go (let [response    (<! (http/get (str sub-route "/subs/")))
+  (go (let [response    (<! (http/get (str PATH-PREFIX "/subs/")))
             response    (h/read-json (:body response))
             mk-atom-dic #(into {} (for [[k md] %]
                                     {k (atom md)}))
@@ -57,24 +57,24 @@
         (reset! tags-metadata t-md))))
 
 (defn request-feed [title]
-  (go (let [response    (<! (http/get (str sub-route "/f/" (js/encodeURIComponent title) "/42")))
+  (go (let [response    (<! (http/get (str PATH-PREFIX "/f/" (js/encodeURIComponent title) "/42")))
             response    (h/read-json (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
 
 (defn change-feed-md [feed md]
-  (go (let [new-md      (:body (<! (http/post (str sub-route "/f-md/" (js/encodeURIComponent feed)) {:json-params md})))]
+  (go (let [new-md      (:body (<! (http/post (str PATH-PREFIX "/f-md/" (js/encodeURIComponent feed)) {:json-params md})))]
         (request-feed feed))))
 
 
 (defn change-article-md [feed art-id md]
-  (go (let [new-md      (:body (<! (http/post (str sub-route "/a-md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
+  (go (let [new-md      (:body (<! (http/post (str PATH-PREFIX "/a-md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md})))]
         (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata)
         new-md)))
 
 (defn toggle-tag-md [tag key]
   (go (let [k-val       (select-one [ATOM (keypath tag) ATOM (keypath key)] tags-metadata)
             k-val       (if k-val (not k-val) true)
-            new-md      (:body (<! (http/post (str sub-route "/t-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
+            new-md      (:body (<! (http/post (str PATH-PREFIX "/t-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
         (transform [ATOM (keypath tag) ATOM] #(merge % new-md) tags-metadata))))
 
 (defn change-article-status-md [new-state & [gguid]]
@@ -141,7 +141,7 @@
                         :div.subscription)]
     (when (or show-all (or (> unread 0) (> saved 0)))
       [div ;{:on-click #(request-feed feed)}
-       [:div.sub-title [a {:href (str sub-route "#/feed/" (js/encodeURIComponent feed))} feed]]
+       [:div.sub-title [a {:href (str PATH-PREFIX "/feed/" (js/encodeURIComponent feed))} feed]]
        [:div.sub-count.small unread]])))
 
 (rum/defcs mk-tag < rum/reactive
@@ -263,7 +263,7 @@
 
 (defn select-search-feed []
   (when-let [n    (:nth @search-state)]
-    (.setToken HISTORY (str sub-route "/feed/" (js/encodeURIComponent (nth (:results @search-state) n)))))
+    (.setToken HISTORY (str PATH-PREFIX "/feed/" (js/encodeURIComponent (nth (:results @search-state) n)))))
   (reset! search-state {:visible false}))
 
 (defn search [text]
@@ -350,7 +350,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; init, takes care of setting up history:
 
-(defroute (str sub-route "/feed/:feed") {:as params}
+(defroute (str PATH-PREFIX "/feed/:feed") {:as params}
   (request-feed (-> params :feed js/decodeURIComponent)))
 ;; FIXME add / route
 
