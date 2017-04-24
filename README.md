@@ -1,39 +1,37 @@
 # simple-reader
 
-FIXME: Write a one-line description of your library/project.
+A simple rss/atom feed reader.
 
 ## Overview
 
-FIXME: Write a paragraph about the library/project and highlight its goals.
+simple-reader is a node.js process that downloads your feeds, and a web client to access them.
 
-## Setup
+## Web interface
 
-To get an interactive development environment run:
+The interface is split in two, the list of your feed subscriptions on the left, the feed you are reading on the right.
 
-    lein figwheel
+### Subscription view:
 
-and open your browser at [localhost:3449](http://localhost:3449/).
-This will auto compile and send all changes to the browser without the
-need to reload. After the compilation process is complete, you will
-get a Browser Connected REPL. An easy way to try it is:
+Feeds are listed under their tag to help you organise them (news, tech, comics...). 
+Click on the orange triangle of a tag to hide/show its content, click on the grey one to hide/show feeds with no unread articles, which are hidden by default.
 
-    (js/alert "Am I connected?")
+### Feed/Article view:
 
-and you should see an alert in the browser window.
+Click on the article you want to read, use top right controls to change the feed settings (article order, show unread or not...).
+An orange article is unread, green is saved, grey is read. Read articles are deleted once they're dropped from the rss feed.
 
-To clean all compiled files:
+### Keyboard navigation:
 
-    lein clean
-
-To create a production build run:
-
-    lein do clean, cljsbuild once min
-
-And open your browser in `resources/public/index.html`. You will not
-get live reloading, nor a REPL. 
+- j: next article
+- k: previous article (takes you to the last one if no articles are opened)
+- m: toggle mark as (un)read
+- s: toggle mark as saved
+- g: go to the top of the feed
+- G: go to the bottom of the feed
+- v: open article in new tab
+- f: toggle fullscreen
+- b: open feed search, type the name of a feed, once you find it hit enter. Use up and down arrows to navigate through search results.
 
 ## License
 
-Copyright © 2014 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version.
+BSD "do what you want with it"
