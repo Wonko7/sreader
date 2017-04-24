@@ -140,7 +140,7 @@
                         :div.subscription)]
     (when (or show-all (or (> unread 0) (> saved 0)))
       [div ;{:on-click #(request-feed feed)}
-       [:div.sub-title [a {:href (str "/feed/" (js/encodeURIComponent feed))} feed]]
+       [:div.sub-title [a {:href (str "#/feed/" (js/encodeURIComponent feed))} feed]]
        [:div.sub-count.small unread]])))
 
 (rum/defcs mk-tag < rum/reactive
