@@ -227,7 +227,7 @@
         view-values   ["unread" "saved" "all"]
         div-title     (if visible-id :div.feed-title-small :div.feed-title)
         mk-select     (fn [value values callback]
-                        [:select {:on-change callback :value value}
+                        [:select {:on-change callback :value value :disabled "disabled"}
                          (for [v values]
                            [:option {:value v} v])])]
     [:div.feed-title-wrapper {:style {:display (if visible? "" "none")}}
