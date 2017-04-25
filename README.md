@@ -5,6 +5,7 @@ A simple rss/atom feed reader.
 ## Overview
 
 simple-reader is a node.js process that downloads your feeds, and a web client to access them.
+Made with Rum (React wrapper), Specter, feedparser. Checkout project.clj & package.json for full dependencies and credits.
 
 ## Web interface
 
@@ -28,6 +29,8 @@ An orange article is unread, green is saved, grey is read. Read articles are del
 - s: toggle mark as saved
 - g: go to the top of the feed
 - G: go to the bottom of the feed
+- r: refresh current feed
+- R: refresh all feeds
 - v: open article in new tab
 - f: toggle fullscreen
 - b: open feed search, type the name of a feed, once you find it hit enter. Use up and down arrows to navigate through search results.
