@@ -1,4 +1,3 @@
-;(ns ^:figwheel-always simple-reader.core
 (ns simple-reader.core
   (:require
     [cljs.nodejs :as node]
