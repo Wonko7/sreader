@@ -61,21 +61,21 @@
         (reset! feed-state (init-feed-metadata response)))))
 
 (defn change-feed-md [feed md]
-  (go (let [new-md      md (comment (:body (<! (http/post (str "/f-md/" (js/encodeURIComponent feed)) {:json-params md}))))]
+  (go (let [new-md      md ]
         (transform [ATOM] #(merge % new-md) feed-state)
         ;(request-feed feed)
         )))
 
 
 (defn change-article-md [feed art-id md]
-  (go (let [new-md      md (comment (:body (<! (http/post (str "/a-md/" (js/encodeURIComponent feed) "/" art-id) {:json-params md}))))]
+  (go (let [new-md      md ]
         (transform [ATOM (keypath art-id) ATOM] #(merge % new-md) article-metadata)
         new-md)))
 
 (defn toggle-tag-md [tag key]
   (go (let [k-val       (select-one [ATOM (keypath tag) ATOM (keypath key)] tags-metadata)
             k-val       (if k-val (not k-val) true)
-            new-md      (:body (<! (http/post (str "/t-md/" (js/encodeURIComponent tag)) {:json-params {key k-val}})))]
+            new-md      {key k-val} ]
         (transform [ATOM (keypath tag) ATOM] #(merge % new-md) tags-metadata))))
 
 (defn change-article-status-md [new-state & [gguid]]
