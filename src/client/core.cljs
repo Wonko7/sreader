@@ -92,7 +92,7 @@
                           new-state (inc cur-count)
                           cur-state (dec cur-count)
                           cur-count))]
-    (if (and guid (not= new-state cur-state))
+    (if (and (not= guid "a1") guid (not= new-state cur-state))
       (go (let [result-md (:status (<! (change-article-md feed guid {:status new-state})))]
             (when (= new-state result-md)
               (multi-transform [ATOM (keypath feed) ATOM (multi-path [:unread-count (terminal #(update-count "unread" %))]
