@@ -42,7 +42,8 @@
                            :asset-path "js/compiled/out"
                            :output-to "resources/public/js/compiled/simple_reader.js"
                            :output-dir "resources/public/js/compiled/out"
-                           :source-map-timestamp true
+                           ;:source-map-timestamp true
+                           :optimizations :advanced
                            ;; To console.log CLJS data-structures make sure you enable devtools in Chrome
                            ;; https://github.com/binaryage/cljs-devtools
                            :preloads [devtools.preload]}}
@@ -59,7 +60,8 @@
                            :output-dir "target/simple_reader"
                            :target :nodejs
                            :optimizations :none
-                           :source-map true }}
+                           ;:source-map true
+                           }}
 
                ;; This next build is an compressed minified build for
                ;; production. You can build this with:

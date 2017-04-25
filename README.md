@@ -19,6 +19,8 @@ Click on the article you want to read.
 An orange article is unread, green is saved, grey is read. Read articles are deleted once they're dropped from the rss feed.
 Top right controls to change the feed settings (article order, show unread or not...) are disabled in the demo.
 
+In this demo version article status is reset each time you change feeds, or refresh.
+
 ### Keyboard navigation:
 
 - j: next article
