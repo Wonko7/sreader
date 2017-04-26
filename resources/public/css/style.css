@@ -53,8 +53,9 @@ body {
 .tag {
 	color: green;
 }
+/* FIXME :a1 */
 .tag a:link,
-.tag a:visited,
+.tag a:visited, 
 .tag a:hover,
 .tag a:active
 {

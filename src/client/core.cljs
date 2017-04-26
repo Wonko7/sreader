@@ -194,13 +194,13 @@
    {title :title date :pretty-date desc :description scraped :scraped link :link id :guid}]
   (let [a-md     (@article-metadata id)
         {read-status :status visible? :visible?} (rum/react a-md)
-        [art-div-style art-read-status] (condp = read-status
-                                          "saved" [:div.article.saved "saved"]
-                                          "read"  [:div.article.read ""]
-                                          [:div.article "unread"])]
-    [art-div-style {:tab-index -1 :style {:outline 0}
-                    :on-click (when-not visible? #(change-article 0 id))}
-     [:a.title {:href link :target "_blank"} title]
+        [a-style art-read-status] (condp = read-status
+                                    "saved" [:a.title.saved "saved"]
+                                    "read"  [:a.title.read ""]
+                                    [:a.title "unread"])]
+    [:div.article {:tab-index -1 :style {:outline 0}
+                   :on-click (when-not visible? #(change-article 0 id))}
+     [a-style {:href link :target "_blank"} title]
      [:br]
      [:div.article-info.small [:div.date date] [:div.artical-satus art-read-status]]
      [:div.content {:style {:display (if visible? "" "none")}}
