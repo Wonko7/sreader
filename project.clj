@@ -13,16 +13,22 @@
                  [cljs-http "0.1.42"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [com.rpl/specter "1.0.0"]
+                 [garden "1.3.2"]
                  [secretary "1.2.3"]
                  [rum "0.10.5"]
                  [binaryage/devtools "0.8.2"]]
 
   :plugins [[lein-cljsbuild "1.1.4" :exclusions [[org.clojure/clojure]]]
-            ]
+            [lein-garden "0.3.0"]
+            [lein-pdo "0.1.1"]]
 
   :source-paths ["src"]
 
   ;:clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
+
+  :garden {:builds [{:source-paths ["src"]
+                     :stylesheet client.style/style
+                     :compiler {:output-to "resources/public/css/main.css"}}]}
 
   :cljsbuild {:builds
               [{:id "client"
@@ -60,4 +66,6 @@
   :profiles {:dev {:dependencies [[binaryage/devtools "0.8.2"]]
                    :source-paths ["src" "dev"]
                    }}
+
+  :aliases {"watch" ["pdo" ["garden" "auto"] ["cljsbuild" "auto" "client" "server" ]]}
 )
