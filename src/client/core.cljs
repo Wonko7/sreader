@@ -98,6 +98,8 @@
                                subscriptions-state))))
       (go :nothing-was-done))))
 
+(defn change-feed-page [feed]
+  (.setToken HISTORY (str "/feed/" (js/encodeURIComponent feed))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; interaction:
 
@@ -139,7 +141,7 @@
                         :div.subscription.selected
                         :div.subscription)]
     (when (or show-all (or (> unread 0) (> saved 0)))
-      [div ;{:on-click #(request-feed feed)}
+      [div {:on-click #(change-feed-page feed)}
        [:div.sub-title [a {:href (str "#/feed/" (js/encodeURIComponent feed))} feed]]
        [:div.sub-count.small unread]])))
 
@@ -262,7 +264,7 @@
 
 (defn select-search-feed []
   (when-let [n    (:nth @search-state)]
-    (.setToken HISTORY (str "/feed/" (js/encodeURIComponent (nth (:results @search-state) n)))))
+    (change-feed-page (nth (:results @search-state) n)))
   (reset! search-state {:visible false}))
 
 (defn search [text]
