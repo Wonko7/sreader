@@ -1,23 +1,18 @@
 (ns client.style
   (:require [garden.def :refer [defstyles]]
             [com.rpl.specter :as s :refer [setval select-one select transform must if-path cond-path multi-transform multi-path filterer keypath pred submap terminal-val terminal srange ALL ATOM FIRST MAP-VALS]]
-            [utils.macros :refer [dprint !]
-             ]
             ))
 
-;; (defn ! [& body]
-;;   (let [split (split-with keyword? body)
-;;         _ (println :a split)
-;;         [selectors [style & body]] split
-;;         [selectors [style & body]] (if (empty? selectors)
-;;                                      [style body]
-;;                                      split)
-;;         _ (println :b selectors style)
-;;         style (if (map? style)
-;;                 style
-;;                 (apply merge style))]
-;;         (println :c selectors style)
-;;     (vec (concat selectors style body))))
+(defn ! [& body]
+  (let [split (split-with keyword? body)
+        [selectors [style & body]] split
+        [selectors [style & body]] (if (empty? selectors)
+                                     [style body]
+                                     split)
+        style (if (map? style)
+                style
+                (apply merge style))]
+    (vec (concat selectors [style] body))))
 
 (defstyles style []
   (let [;; colors:
@@ -29,7 +24,6 @@
         sol-grey        "#93a1a1"
         sol-grey2       "#888888"
         sol-grey3       "#AAAAAA"
-        green           :green
         ;; flex-child/parent padding margin
         a-all-states    [:a:link :a:visited :a:hover :a:active]
         mk-trbl         (fn [k values]
@@ -87,11 +81,11 @@
                                          (margin {:t "1em" :b "1em"})]
                    (! :.feed-title-small {:font-size "1em"})
                    (! :.feed-title {:font-size "2em"})
-                   (! [:.feed-title-small :.feed-title] [(flex-child "0 0 80%")
-                                                         (flex-parent :row)
-                                                         {:font-weight :bold
-                                                          :color sol-grey
-                                                          :align-items :baseline}]
+                   (! :.feed-title-small :.feed-title [(flex-child "0 0 80%")
+                                                       (flex-parent :row)
+                                                       {:font-weight :bold
+                                                        :color sol-grey
+                                                        :align-items :baseline}]
                       (! :.title-only (flex-child "0 1 auto"))
                       (! :.feed-count [(flex-child :auto)
                                        (margin {:l "1em"})]))

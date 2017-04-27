@@ -78,13 +78,3 @@
      ~@body
      (catch js/Object e# (do (println (str ~cljs.analyzer/*cljs-file* ":" ~(:line (meta &form))) e#)
                              {}))))
-
-;; for css style
-(defmacro ! [selector style & body]
-  `(let [v# (if (keyword? ~selector)
-              [~selector]
-              ~selector)]
-     (concat v# [(if (map? ~style)
-                   ~style
-                   (merge ~@style))
-                 ~@body])))
