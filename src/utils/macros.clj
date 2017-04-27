@@ -78,3 +78,8 @@
      ~@body
      (catch js/Object e# (do (println (str ~cljs.analyzer/*cljs-file* ":" ~(:line (meta &form))) e#)
                              {}))))
+
+;; for css style
+(defmacro ! [& body]
+  `[~@(drop-last body)
+    (merge ~@(last body))])
