@@ -80,6 +80,11 @@
                              {}))))
 
 ;; for css style
-(defmacro ! [& body]
-  `[~@(drop-last body)
-    (merge ~@(last body))])
+(defmacro ! [selector style & body]
+  `(let [v# (if (keyword? ~selector)
+              [~selector]
+              ~selector)]
+     (concat v# [(if (map? ~style)
+                   ~style
+                   (merge ~@style))
+                 ~@body])))
