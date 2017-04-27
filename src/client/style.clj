@@ -1,8 +1,23 @@
 (ns client.style
   (:require [garden.def :refer [defstyles]]
             [com.rpl.specter :as s :refer [setval select-one select transform must if-path cond-path multi-transform multi-path filterer keypath pred submap terminal-val terminal srange ALL ATOM FIRST MAP-VALS]]
-            [utils.macros :refer [dprint !]]
+            [utils.macros :refer [dprint !]
+             ]
             ))
+
+;; (defn ! [& body]
+;;   (let [split (split-with keyword? body)
+;;         _ (println :a split)
+;;         [selectors [style & body]] split
+;;         [selectors [style & body]] (if (empty? selectors)
+;;                                      [style body]
+;;                                      split)
+;;         _ (println :b selectors style)
+;;         style (if (map? style)
+;;                 style
+;;                 (apply merge style))]
+;;         (println :c selectors style)
+;;     (vec (concat selectors style body))))
 
 (defstyles style []
   (let [;; colors:
