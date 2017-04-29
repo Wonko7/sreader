@@ -4,11 +4,10 @@
             ))
 
 (defn ! [& body]
-  (let [split (split-with keyword? body)
-        [selectors [style & body]] split
-        [selectors [style & body]] (if (empty? selectors)
-                                     [style body]
-                                     split)
+  (let [[selectors [style & body] :as split] (split-with keyword? body)
+        [selectors [style & body]]           (if (empty? selectors) ;; then selectors was given as an array, which is now bound to style.
+                                               [style body]
+                                               split)
         style (if (map? style)
                 style
                 (apply merge style))]

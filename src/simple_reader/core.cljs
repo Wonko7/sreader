@@ -86,27 +86,39 @@
 (defn update-feeds []
   "scrape subscriptions"
   (let [process-article (fn [feed {cnt :count kept-articles :kept} article]
-                          (if (or (= article :done) (= article :error))
-                            {:count cnt :status article :kept kept-articles}
-                            (let [already-scraped (try->empty (io/load-article-scraped feed (:guid article))) ;; FIXME scrape-fn makes that decision
-                                  scraped         (scrape/scrape feed article already-scraped)]
-                              (go (try->empty (io/save-article feed article (<! scraped))))
-                              {:count (inc cnt) :kept (conj kept-articles (:guid article))})))
-        purge           (fn [feed {status :status to-keep :kept}]
-                          (when (= status :done)
-                            (let [all       (try->empty (io/load-feed feed))
-                                  read      (into #{} (select [ALL #(= "read" (-> % :metadata :status)) :guid] all))
-                                  out-dated (set/difference read to-keep)]
-                              (map #(try->empty (io/rm-article feed %)) out-dated))))]
-    (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
+                          (let [already-scraped (try->empty (io/load-article-scraped feed (:guid article))) ;; FIXME scrape-fn makes that decision
+                                scraped         (scrape/scrape feed article already-scraped)]
+                            (go (try->empty (io/save-article feed article (<! scraped))))
+                            {:count (inc cnt) :kept (conj kept-articles (:guid article))}))
+        process-logs    (fn [{status :status logs :logs} {new-status :level msg :log :as log}]
+                             (let [s (if (or (= :error status) (= :error new-status))
+                                       :error
+                                       :ok)]
+                               (when-not (= :ok new-status)
+                                 (println new-status msg))
+                               {:status s :logs (conj logs log)}))
+        purge           (fn [feed to-keep]
+                          (let [all       (try->empty (io/load-feed feed))
+                                read      (into #{} (select [ALL #(= "read" (-> % :metadata :status)) :guid] all))
+                                out-dated (set/difference read to-keep)]
+                            (map #(try->empty (io/rm-article feed %)) out-dated)))
+        timestamp       (new js/Date)]
+    (println "core:" (.toLocaleTimeString timestamp) "starting update feeds")
     (doseq [[k {link :url feed :name www-link :www-link :as fmd}] @feed-md
-            :let [[feed-meta articles] (fr/read link)]]
+            :let [[feed-meta articles logs] (fr/read link)]]
       (go (let [new-link (:link (<! feed-meta))]
             (when (not= new-link www-link)
               (try->empty (io/save-feed-fmd feed (merge (dissoc fmd :unread-count :saved-count) {:www-link new-link}))))))
-      (go (let [res       (<! (a/reduce (partial process-article feed) {:kept #{} :count 0} articles))
-                purged    (purge feed res)]
-            (println "core:" (-> res :status name (str ":")) (:count res) "articles:" feed "-- purged:" (count purged)))))))
+      (go (let [[art-reduced log-reduced] [(a/reduce (partial process-article feed) {:kept #{} :count 0} articles)
+                                           (a/reduce process-logs {:status :ok :logs []} logs)]
+                {cnt :count kept :kept}     (<! art-reduced)
+                {status :status logs :logs} (<! log-reduced)
+                purged    (if (= :ok status)
+                            (count (purge feed kept))
+                            0)]
+            (when-not (empty? logs)
+              (try->empty (io/append-feed-logs feed {timestamp logs})))
+            (println "core:" (-> status name (str ":")) cnt "articles:" feed "-- purged:" purged))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
