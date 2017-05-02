@@ -76,7 +76,7 @@
   (let [articles        (chan)
         feed-md         (chan)
         logs            (chan)
-        log             #(go (>! logs {:level %1 :log %2}))
+        log             #(go (>! logs {:level %1 :log %2 :system :feed-reader}))
         close-all!      #(go (a/close! articles)
                              (a/close! logs)
                              (a/close! feed-md))
