@@ -110,7 +110,8 @@
 
     (println "\ncore:" (.toLocaleTimeString timestamp) "starting update feeds")
 
-    (doseq [[k {link :url feed :name www-link :www-link :as fmd}] @feed-md
+    (doseq [[k {link :url type :type feed :name www-link :www-link :as fmd}] @feed-md
+            :when (= type :rss)
             :let [[feed-meta articles feed-logs] (fr/read link)]]
 
       (go (let [new-link (:link (<! feed-meta))]
