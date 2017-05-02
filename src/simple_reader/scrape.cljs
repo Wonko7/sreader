@@ -3,6 +3,7 @@
             [cljs.nodejs :as node]
             [cljs.core.async :refer [chan <! >!] :as a]
             [clojure.string :as str]
+            [simple-reader.logs :as log]
             [simple-reader.helpers :as h]
             [simple-reader.feedreader :as fr])
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]

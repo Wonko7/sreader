@@ -156,62 +156,10 @@
     (a/pipeline 1 feed-md-ans (map change-feed-md) feed-md-req)
     (a/pipeline 1 tag-md-ans (map change-tag-md) tag-md-req)
 
-
-
-    (log/write-logs
-{1
- {"Mark Watson's opinions on Java, Ruby, Lisp, AI, and the Semantic Web"
-  {:info {:core ["25 articles -- purged: 0"]}},
-  "What's new"
-  {:error
-   {:feed-reader
-    ["\"feed-reader: error requesting\" \"http://terrytao.wordpress.com/feed/\" #object[Error Error: socket hang up]"],
-    :core ["0 articles -- purged: 0"]}},
-  "Planet Gentoo" {:info {:core ["50 articles -- purged: 0"]}},
-  "Notre construction à Bazemont"
-  {:info {:core ["25 articles -- purged: 0"]}},
-  "OpenSSL Valhalla Rampage"
-  {:info {:core ["20 articles -- purged: 0"]}},
-  "Explosm Shorts" {:info {:core ["15 articles -- purged: 0"]}},
-  "Neil Gaiman's Journal" {:info {:core ["25 articles -- purged: 0"]}},
-  "blackbag" {:info {:core ["10 articles -- purged: 0"]}},
-  "iamdonald"
-  {:error
-   {:feed-reader
-    ["\"feed-reader: feed parser error:\" \"http://www.iamdonald.com/rss\" #object[Error Error: Not a feed]"],
-    :core ["0 articles -- purged: 0"]}},
-  "QDB: Latest Approved Quotes"
-  {:info {:core ["25 articles -- purged: 0"]}},
-  "AntiHero's lockpick area"
-  {:info {:core ["4 articles -- purged: 0"]
-          :lol ["wtf"]}},
-  "Gentoo Linux News" {:info {:core ["10 articles -- purged: 0"]}},
-  "Whatever" {:info {:core ["10 articles -- purged: 0"]}},
-  "Vie de merde" {:info {:core ["20 articles -- purged: 1"]}},
-  "Presseurop" {:info {:core ["15 articles -- purged: 0"]}},
-  "Send More Paramedics" {:info {:core ["5 articles -- purged: 0"]}},
-  "FMyLife" {:info {:core ["20 articles -- purged: 1"]}},
-  "Clojure Pipe"
-  {:error
-   {:feed-reader
-    ["\"feed-reader: error requesting\" \"http://pipes.yahoo.com/pipes/pipe.run?_id=4cc8ebb9ae0b852d6ab7d94956ce2638&amp;_render=rss\" #object[Error Error: getaddrinfo ENOTFOUND pipes.yahoo.com pipes.yahoo.com:80]"],
-    :core ["0 articles -- purged: 0"]}},
-  "Total Survivalist Libertarian Rantfest"
-  {:error
-   {:feed-reader
-    ["\"feed-reader: feed parser error:\" \"http://tslrf.blogspot.com/feeds/posts/default\" #object[Error Error: Not a feed]"],
-    :core ["0 articles -- purged: 0"]}},
-  "Neil Strauss"
-  {:error
-   {:feed-reader
-    ["\"feed-reader: HTTP: request: bad status code:\" 404 \"on:\" \"http://www.neilstrauss.com/neil-strauss/?feed=rss2\""],
-    :core ["0 articles -- purged: 0"]}}
-  }})
-
-    (comment (go (while true
+    (go (while true
           (get-subs-by-tags)
           (update-feeds)
-          (<! (timeout (* 1000 60 60))))))))
+          (<! (timeout (* 1000 60 60)))))))
 
 
 (set! *main-cli-fn* -main)
