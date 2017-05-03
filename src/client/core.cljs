@@ -25,7 +25,7 @@
 (defonce subscriptions-state (atom {}))
 (defonce tags-state (atom {}))
 (defonce tags-metadata (atom {}))
-(defonce feed-state (atom {:feed-data {:title "Loading..."}}))
+(defonce feed-state (atom {:feed-data {:name "Loading..."}}))
 (defonce article-metadata (atom {}))
 (defonce search-state (atom {:visible false}))
 (def HISTORY (History.))
@@ -56,6 +56,7 @@
         (reset! tags-metadata t-md))))
 
 (defn request-feed [title]
+  (set! (-> js/document (.getElementById "feed-page-wrapper") .-style .-opacity) 0)
   (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
             response    (h/read-json (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
@@ -78,7 +79,7 @@
 
 (defn change-article-status-md [new-state & [gguid]]
   (let [guid          (or gguid (-> @article-metadata :selected :guid))
-        feed          (-> @feed-state :feed-data :title)
+        feed          (-> @feed-state :feed-data :name)
         cur-state     (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
         cur-state     (or cur-state "unread")
         new-state     (cond (and gguid (not= cur-state "saved"))                  "read" ;; hackish, this is for auto-mark-read on article change
@@ -128,23 +129,21 @@
       (go :nothing-was-done))))
 
 (defn change-feed [direction]
-  (let [cur-f     (-> @feed-state :feed-data :title)     
-        tc        (:tag-content @tags-state)
-        tag       (-> @feed-state :metadata keys)
-        t         (some (partial filter #(= cur-f %)) (vals tc))
+  (let [cur-f     (-> @feed-state :feed-data :name)
+        tag       (-> @feed-state :feed-data :tags first) ;; fixme tags should become unique, that was a stupid idea.
+        tc        ((-> @tags-state :tag-content) tag)
         sub-state @subscriptions-state
         unread?   #(let [md @(sub-state %)]
                      (or (= % cur-f) (-> md :saved-count pos?) (-> md :unread-count pos?)))
-        search    (fn [[f & fs] p]
+        search    (fn [p [f & fs]]
                     (if (= f cur-f)
                       (if (= direction 1)
                         (first fs)
                         p)
                       (if fs
-                        (recur fs f)
+                        (recur f fs)
                         nil)))
-        res       (->> tc vals (map #(filter unread? %)) (map #(search % nil)) (filter identity) first)]
-    (println tag)
+        res       (->> tc (filter unread?) (search nil))]
     (when res
       (change-feed-page res))))
 
@@ -153,7 +152,7 @@
 
 (rum/defc mk-sub < rum/reactive
   [feed show-all]
-  (let [selected-feed (-> feed-state rum/react :feed-data :title)
+  (let [selected-feed (-> feed-state rum/react :feed-data :name)
         sub-md        (rum/react (@subscriptions-state feed))
         unread        (:unread-count sub-md)
         saved         (:saved-count sub-md)
@@ -262,13 +261,15 @@
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
                                     "focus on feed change"
-                                    (let [feed-node (.getElementById js/document "feed-content")]
+                                    (let [feed-node (.getElementById js/document "feed-content")
+                                          feed-wrapper (.getElementById js/document "feed-page-wrapper")]
                                       (.focus feed-node)
                                       (set! (.-scrollTop feed-node) 0)
+                                      (set! (-> feed-wrapper .-style .-opacity) 1)
                                       state))}
   [state]
   (let [fstate      (rum/react feed-state)
-        ftitle      (-> fstate :feed-data :title)
+        ftitle      (-> fstate :feed-data :name)
         articles    (:articles fstate)]
     [:div#feed-page-wrapper
      (mk-feed-title ftitle)
@@ -358,9 +359,9 @@
               "m" (<! (change-article-status-md "read"))
               "s" (<! (change-article-status-md "saved"))
               "b" (setval [ATOM] {:visible true :subscriptions (sort (select [ATOM ALL FIRST] subscriptions-state))} search-state)
-              "r" (request-feed (select-one [ATOM :feed-data :title] feed-state))
+              "r" (request-feed (select-one [ATOM :feed-data :name] feed-state))
               "R" (do (request-subscriptions)
-                      (request-feed (select-one [ATOM :feed-data :title] feed-state)))
+                      (request-feed (select-one [ATOM :feed-data :name] feed-state)))
               "v" (do (let [guid (select-one [ATOM :selected :guid] article-metadata)
                             link (select-one [ATOM :articles ALL #(= guid (:guid %)) :link] feed-state)] ;; specter is awesome, my state structure isn't.
                         (.open js/window link))) ;; FIXME: for this to work in chrome (tab instead of pop up), we'd need to .open in the listen callback, which is annoying.

@@ -73,6 +73,9 @@ body #page #feed-anchor {
 body #page #feed-anchor #feed-page-wrapper {
   display: flex;
   flex-direction: column;
+  opacity: 0;
+  -webkit-transition: opacity 0.5s;
+  transition: opacity 0.5s;
   height: 100vh;
   overflow: hidden;
 }

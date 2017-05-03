@@ -43,6 +43,7 @@
 (defn get-feed [{feed :feed nb :nb}]
   "read feeds web client"
   (try->empty (let [metadata (io/load-feed-md feed)
+                    f-md     (@feed-md feed)
                     view     (or (:view-art-status metadata) "unread")
                     order    (or (:order metadata)  "oldest then saved")
                     articles (io/load-feed feed)
@@ -60,7 +61,7 @@
                                (let [unsaved (sort-by :date (filter #(not= "saved" (-> % :metadata :status)) articles))
                                      saved   (sort-by :date (filter #(= "saved" (-> % :metadata :status)) articles))]
                                  (concat unsaved saved)))]
-                (h/write-json {:feed-data {:title feed}
+                (h/write-json {:feed-data (select-keys f-md [:name :tags])
                                :metadata metadata
                                :articles articles}))))
 
@@ -159,7 +160,7 @@
 
     (go (while true
           (get-subs-by-tags)
-          (update-feeds)
+          (comment (update-feeds))
           (<! (timeout (* 1000 60 60)))))))
 
 

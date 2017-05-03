@@ -43,7 +43,11 @@
                           {:flex f})
         round-corners   (fn [radius]
                           {:border-width 0
-                           :border-radius radius})]
+                           :border-radius radius})
+        fade-in         (fn [time]
+                          {:opacity 0
+                           :-webkit-transition (str "opacity " time) ;; safari
+                           :transition (str "opacity " time)})]
     (! :body [(margin 0)
               (padding 0)
               {:background sol-dark-blue
@@ -72,6 +76,7 @@
           (! :#feed-anchor [(flex-child 2)
                             {:height "100vh"}]
              (! :#feed-page-wrapper [(flex-parent :column)
+                                     (fade-in "0.5s")
                                      {:height "100vh"
                                       :overflow :hidden}]
                 (! :.feed-title-wrapper [(flex-child "0 1 auto")
