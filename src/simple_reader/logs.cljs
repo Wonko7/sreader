@@ -27,7 +27,7 @@
   (let [mk-div    (fn [class content & [extra]] ;; *sigh*
                     (str "<div class=\"" (name class) "\">" content (or extra "") "</div>"))
         mk-entry  (fn [feed status logs]
-                    (str (mk-div :sr-log-title (str feed ": " status))
+                    (str (mk-div :sr-log-title feed)
                          (mk-div :sr-log-wrapper
                                  (apply str (for [[sys logs] (sort-by first logs)
                                                   l logs]
@@ -41,11 +41,14 @@
                                  )))
         hum-date  (node/require "human-date")
         tss       (sort (keys logs))
-        statuses  [:error :warning :info]]
+        statuses  [:info :warning :error]]
     (doseq [ts tss
-            st statuses]
-      (io/save-article "SReader Logs" {:date ts :pretty-date (.prettyPrint hum-date ts)
-                                       :title (name st) :description (mk-descr ts st) :guid (str st (.toString ts))} {}))))
+            st statuses
+            :let [descr (mk-descr ts st)
+                  date  (.prettyPrint hum-date ts)]
+            :when (not (empty? descr))]
+      (io/save-article "SReader Logs" {:date ts :pretty-date date
+                                       :title (name st) :description descr :guid (str st (.toString ts))} {}))))
 
 (defn- process-logs []
   (go-loop [acc-logs {}]
