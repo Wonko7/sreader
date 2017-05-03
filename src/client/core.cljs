@@ -127,6 +127,27 @@
           (change-article-status-md "read" guid))
       (go :nothing-was-done))))
 
+(defn change-feed [direction]
+  (let [cur-f     (-> @feed-state :feed-data :title)     
+        tc        (:tag-content @tags-state)
+        tag       (-> @feed-state :metadata keys)
+        t         (some (partial filter #(= cur-f %)) (vals tc))
+        sub-state @subscriptions-state
+        unread?   #(let [md @(sub-state %)]
+                     (or (= % cur-f) (-> md :saved-count pos?) (-> md :unread-count pos?)))
+        search    (fn [[f & fs] p]
+                    (if (= f cur-f)
+                      (if (= direction 1)
+                        (first fs)
+                        p)
+                      (if fs
+                        (recur fs f)
+                        nil)))
+        res       (->> tc vals (map #(filter unread? %)) (map #(search % nil)) (filter identity) first)]
+    (println tag)
+    (when res
+      (change-feed-page res))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
@@ -330,6 +351,8 @@
               character (.fromCharCode js/String (.-charCode key-event))]
           (when-not (:visible @search-state) ;; FIXME I hate myself.
             (condp = character
+              "J" (change-feed 1)
+              "K" (change-feed -1)
               "j" (<! (change-article 1))
               "k" (<! (change-article -1))
               "m" (<! (change-article-status-md "read"))

@@ -84,7 +84,7 @@
                           (go (when msg 
                                 (<! (log level msg)))
                               (close-all!)))
-        req             ((node/require "request") feed (cljs/clj->js {:timeout 50000 :pool false}))
+        req             ((node/require "request") feed (cljs/clj->js {:timeout 60000 :pool false}))
         fp              (node/require "feedparser")
         fp              (new fp)]
     (.setMaxListeners req 50)

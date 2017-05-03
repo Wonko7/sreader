@@ -47,7 +47,7 @@
             :let [descr (mk-descr ts st)
                   date  (.prettyPrint hum-date ts)]
             :when (not (empty? descr))]
-      (io/save-article "SReader Logs" {:date ts :pretty-date date
+      (io/save-article "SReader Logs" {:date (new js/Date) :pretty-date date
                                        :title (name st) :description descr :guid (str st (.toString ts))} {}))))
 
 (defn- process-logs []
