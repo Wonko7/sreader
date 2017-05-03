@@ -103,7 +103,8 @@
                                  {:font-size "1.2em"
                                   :color sol-grey
                                   :background sol-ddark-blue}]
-                      (! :a.title {:font-size "1.2em"})
+                      (! :a.title {:font-size "1.2em"
+                                   :color sol-orange})
                       (! :a.title.saved {:color sol-green})
                       (! :a.title.read {:color sol-grey})
                       (! :.article-info (flex-parent :row)
@@ -123,7 +124,15 @@
                                         :left 0})))
                       (! :.content [(padding {:t "1em"})
                                     {:width "75%"
-                                     :text-align :justify}]))))))
+                                     :text-align :justify}]
+                         (! :.sr-log-line [(flex-parent :row)
+                                           (padding ".2em")
+                                           {:font-family :monospace
+                                            :color sol-grey2
+                                            :text-align :left}]
+                            (! :.sr-log-system (flex-child "0 0 20%"))
+                            (! :.sr-log-message (flex-child :auto)))
+                         ))))))
        (! :#search-wrapper {:position :fixed
                             :top 0
                             :left 0

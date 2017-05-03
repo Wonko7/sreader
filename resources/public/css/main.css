@@ -141,6 +141,7 @@ body #page #feed-anchor #feed-page-wrapper #feed-content .article {
 
 body #page #feed-anchor #feed-page-wrapper #feed-content .article a.title {
   font-size: 1.2em;
+  color: #cb4b16;
 }
 
 body #page #feed-anchor #feed-page-wrapper #feed-content .article a.title.saved {
@@ -192,6 +193,23 @@ body #page #feed-anchor #feed-page-wrapper #feed-content .article .content {
   padding: 1em 0 0 0;
   width: 75%;
   text-align: justify;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content .sr-log-line {
+  display: flex;
+  flex-direction: row;
+  padding: .2em;
+  font-family: monospace;
+  color: #888888;
+  text-align: left;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content .sr-log-line .sr-log-system {
+  flex: 0 0 20%;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content .sr-log-line .sr-log-message {
+  flex: auto;
 }
 
 body #search-wrapper {

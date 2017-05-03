@@ -67,8 +67,10 @@
                  (let [title (:title rss-entry)]
                    (if (re-find #"^\[\$\]" title)
                      (let [link (:link rss-entry)
-                           link (str/replace link #"rss$" "")]
-                       (simple-scrape "div.ArticleEntry" {:link link} logs))
+                           link (str/replace link #"rss$" "")
+                           scraped (simple-scrape "div.ArticleEntry" {:link link} logs)]
+                       (log logs :info (str "LWN: got:" scraped))
+                       scraped)
                      (go {}))))
     :overwrite true}
    "NASA Image of the Day"
@@ -77,7 +79,7 @@
                            img (-> ($ "meta[property='og:image']")
                                    (.attr "content"))]
                        (if (nil? img)
-                         (do (log logs :warning (str "scraping returned nothing" :url (:link rss-entry)))
+                         (do (log logs :warning (str "scraping returned nothing" :url link))
                              {})
                          (str "<img src=\"" img "\">")))))}
    "Last Week Tonight"
