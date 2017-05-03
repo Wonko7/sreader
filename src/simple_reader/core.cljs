@@ -160,7 +160,7 @@
 
     (go (while true
           (get-subs-by-tags)
-          (comment (update-feeds))
+          (update-feeds)
           (<! (timeout (* 1000 60 60)))))))
 
 

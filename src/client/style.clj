@@ -136,14 +136,14 @@
                                             :color sol-grey2
                                             :text-align :left}]
                             (! :.sr-log-system (flex-child "0 0 20%"))
-                            (! :.sr-log-message (flex-child :auto)))
-                         ))))))
-       (! :#search-wrapper {:position :fixed
-                            :top 0
-                            :left 0
-                            :height "100%"
-                            :width "100%"
-                            :background "rgba(0, 0, 0, 0.5)"}
+                            (! :.sr-log-message (flex-child :auto)))))))))
+       (! :#search-wrapper [(fade-in "0.5s")
+                            {:position :fixed
+                             :top 0
+                             :left 0
+                             :height "100%"
+                             :width "100%"
+                             :background "rgba(0, 0, 0, 0.5)"}]
           (! :#search [(round-corners ".5em")
                        (padding "1em")
                        {:position :fixed

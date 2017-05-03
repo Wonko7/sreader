@@ -56,7 +56,7 @@
         (reset! tags-metadata t-md))))
 
 (defn request-feed [title]
-  (set! (-> js/document (.getElementById "feed-page-wrapper") .-style .-opacity) 0)
+  (set! (-> js/document (.getElementById "feed-page-wrapper") .-style .-opacity) 0) ;; fixme: it's sad this has to be here.
   (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
             response    (h/read-json (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
@@ -309,7 +309,8 @@
                                      (let [comp     (:rum/react-component state)
                                            dom-node (js/ReactDOM.findDOMNode comp)]
                                        (when dom-node ;; not present when search closes
-                                         (-> dom-node .-firstChild .-firstChild .focus))
+                                         (-> dom-node .-firstChild .-firstChild .focus)
+                                         (set! (-> dom-node .-style .-opacity) 1))
                                        state))}
   [state]
   (let [s-state   (rum/react search-state)

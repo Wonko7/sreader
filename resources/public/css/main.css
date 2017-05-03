@@ -216,6 +216,9 @@ body #page #feed-anchor #feed-page-wrapper #feed-content .article .content .sr-l
 }
 
 body #search-wrapper {
+  opacity: 0;
+  -webkit-transition: opacity 0.5s;
+  transition: opacity 0.5s;
   position: fixed;
   top: 0;
   left: 0;
