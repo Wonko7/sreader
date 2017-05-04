@@ -36,10 +36,7 @@ In this demo version article status is reset each time you change feeds, or refr
 - R: refresh all feeds
 - v: open article in new tab
 - f: toggle fullscreen
-<<<<<<< HEAD
 - b: open feed search, type the name of a feed (try "gua" to select "The Guardian"), once you find it hit enter. Use up and down arrows to navigate through search results
-=======
->>>>>>> master
 
 ## Source
 
