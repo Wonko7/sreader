@@ -13,7 +13,7 @@
   (go (>! logs {:level level :log msg :system :scrape})))
 
 (defn get-link [link logs]
-  (let [req   ((node/require "request") link (cljs/clj->js {:timeout 50000 :pool false}))
+  (let [req   ((node/require "request") link (cljs/clj->js {:timeout 50000 :pool false :encoding :utf8}))
         result-chan (chan)
         close-all! #(go (a/close! result-chan)
                         (a/close! logs))
@@ -23,24 +23,24 @@
     (.setMaxListeners req 50)
     (.setHeader req "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36")
     (.setHeader req "accept" "text/html,application/xhtml+xml")
-    (.on req "error" #(log-and-close! :error (str "scrape: error requesting" link %)))
+    (.on req "error" #(log-and-close! :error (print-str "error requesting:" link %)))
     (.on req "response" (fn [response]
                           (if (not= 200 (.-statusCode response))
-                            (log-and-close! :error (str "scrape: HTTP: request: bad status code: " (.-statusCode response) " on: " link))
+                            (log-and-close! :error (print-str "HTTP: request: bad status code: " (.-statusCode response) (.-statusMessage response) "on:" link))
                             (.on response "data" #(go (>! result-chan %))))))
     (.on req "end" #(close-all!))
 
-    (go (js/Buffer.concat (cljs/clj->js (<! (a/reduce conj [] result-chan)))))))
+    (go (apply str (cljs/clj->js (<! (a/reduce conj [] result-chan)))))))
 
 (defn simple-scrape [selector rss-entry logs]
   (go (if (:link rss-entry)
         (let [$       (.load (node/require "cheerio") (<! (get-link (:link rss-entry) logs)))
               scraped (.html $ selector)]
           (if-not scraped
-            (do (log logs :warning (str "scraping returned nothing" :url (:link rss-entry)))
+            (do (log logs :warning (print-str "scraping returned nothing" :url (:link rss-entry)))
                 {})
             scraped))
-        (do (log logs :warning (str "scrape: error: no link in:" rss-entry))
+        (do (log logs :warning (print-str "error: no link in:" rss-entry))
             {}))))
 
 (defn mk-youtube-embedded [{link :link} logs]
