@@ -48,14 +48,14 @@
 
 ;;;;;;;;;; article MD:
 
-(defn- read-data-file [[& path]]
+(defn- read-data-file [path]
   (let [md-path (apply mk-root-path path)
         exists? (.existsSync FS md-path)]
     (if exists?
       (read-json-file md-path)
       {})))
 
-(defn- write-data-file [[& path] md]
+(defn- write-data-file [path md]
   (let [md-path (apply mk-root-path path)]
     (write-json-file md-path md)))
 
@@ -108,6 +108,12 @@
     (when-not exists?
       (.mkdirSync FS tag-dir))
     (write-json-file md-path md)))
+
+(defn append-feed-logs [feed logs]
+  (let [path          ["logs" (js/encodeURIComponent feed) "log"]
+        _             (mk-dir? (concat [(mk-root-path)] (drop-last path)) )
+        current-logs  (read-data-file path)]
+    (write-data-file path (merge logs current-logs))))
 
 
 ;;;;;;;;;; feeds:

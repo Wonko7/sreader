@@ -1,0 +1,274 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #073642;
+  height: 100vh;
+}
+
+body #page {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+}
+
+body #page #subscriptions-anchor {
+  flex: 0 0 20%;
+  overflow-y: scroll;
+}
+
+body #page #subscriptions-anchor .feeds {
+  padding: 1em;
+  background: #002b36;
+  min-height: 100%;
+}
+
+body #page #subscriptions-anchor .feeds .tag {
+  color: green;
+}
+
+body #page #subscriptions-anchor .feeds .tag a {
+  color: #cb4b16;
+}
+
+body #page #subscriptions-anchor .feeds .tag a.sub-show-all {
+  color: #93a1a1;
+  float: right;
+}
+
+body #page #subscriptions-anchor .feeds .tag .selected {
+  border-width: 0;
+  border-radius: .25em;
+  background: #073642;
+}
+
+body #page #subscriptions-anchor .feeds .tag .subscription {
+  padding: .3em .3em .3em .5em;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+body #page #subscriptions-anchor .feeds .tag .subscription .sub-title {
+  flex: 0 0 90%;
+}
+
+body #page #subscriptions-anchor .feeds .tag .subscription .sub-title a {
+  color: green;
+}
+
+body #page #subscriptions-anchor .feeds .tag .subscription .sub-title a.grey {
+  color: #888888;
+}
+
+body #page #subscriptions-anchor .feeds .tag .subscription .sub-count {
+  flex: 2;
+  padding-left: .9em;
+}
+
+body #page #feed-anchor {
+  flex: 2;
+  height: 100vh;
+}
+
+body #page #feed-anchor #feed-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  -webkit-transition: opacity 0.5s;
+  transition: opacity 0.5s;
+  height: 100vh;
+  overflow: hidden;
+}
+
+body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: row;
+  padding: 0 2em 0 2em;
+  margin: 1em 0 1em 0;
+}
+
+body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-title-small {
+  font-size: 1em;
+}
+
+body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-title {
+  font-size: 2em;
+}
+
+body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-title-small, body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-title {
+  flex: 0 0 80%;
+  display: flex;
+  flex-direction: row;
+  font-weight: bold;
+  color: #93a1a1;
+  align-items: baseline;
+}
+
+body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-title-small .title-only, body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-title .title-only {
+  flex: 0 1 auto;
+}
+
+body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-title-small .feed-count, body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-title .feed-count {
+  flex: auto;
+  margin: 0 0 0 1em;
+}
+
+body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-controls {
+  flex: auto;
+  text-align: right;
+}
+
+body #page #feed-anchor #feed-page-wrapper .feed-title-wrapper .feed-controls select {
+  background: #073642;
+  color: #93a1a1;
+  border: none;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content {
+  flex: 0 1 auto;
+  padding: 0 2em 0 2em;
+  overflow-y: scroll;
+  height: 100%;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article {
+  border-width: 0;
+  border-radius: .5em;
+  padding: 1em;
+  margin: 0 0 1em 0;
+  font-size: 1.2em;
+  color: #93a1a1;
+  background: #002b36;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article a.title {
+  font-size: 1.2em;
+  color: #cb4b16;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article a.title.saved {
+  color: green;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article a.title.read {
+  color: #93a1a1;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .article-info {
+  display: flex;
+  flex-direction: row;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .article-info .date {
+  flex: auto;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .article-info .article-status {
+  flex: auto;
+  margin: 0 0 0 1em;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content, body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped {
+
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content img, body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped img {
+  max-width: 100%;
+  display: block;
+  width: auto;
+  height: auto;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped {
+  max-width: 100%;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped .video-wrapper {
+  padding: 0 0 56% 0;
+  position: relative;
+  width: 100%;
+  height: 0;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped .video-wrapper iframe {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content {
+  padding: 1em 0 0 0;
+  width: 75%;
+  text-align: justify;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content .sr-log-line {
+  display: flex;
+  flex-direction: row;
+  padding: .2em;
+  font-family: monospace;
+  color: #888888;
+  text-align: left;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content .sr-log-line .sr-log-system {
+  flex: 0 0 20%;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content .sr-log-line .sr-log-message {
+  flex: auto;
+}
+
+body #search-wrapper {
+  opacity: 0;
+  -webkit-transition: opacity 0.5s;
+  transition: opacity 0.5s;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+body #search-wrapper #search {
+  width: 30%;
+  border-width: 0;
+  top: 10%;
+  padding: 1em;
+  position: fixed;
+  font-size: 1.2em;
+  border-radius: .5em;
+  background: #073642;
+  color: green;
+  left: 10%;
+}
+
+body #search-wrapper #search input {
+  margin: 0 0 0.5em 0;
+  width: 100%;
+  font-size: 1.2em;
+  background: #AAAAAA;
+}
+
+body #search-wrapper #search .first-result {
+  color: #cb4b16;
+  font-weight: bold;
+}
+
+body a:link, body a:visited, body a:hover, body a:active {
+  text-decoration: none;
+  color: #cb4b16;
+}
+
+body a.grey {
+  color: #888888;
+}
+
+body .small {
+  font-size: 0.75em;
+  color: #888888;
+}

@@ -1,4 +1,3 @@
-;(ns ^:figwheel-always simple-reader.core
 (ns simple-reader.core
   (:require
     [cljs.nodejs :as node]
@@ -6,6 +5,7 @@
     [clojure.set :as set]
     [simple-reader.feedreader :as fr]
     [simple-reader.helpers :as h]
+    [simple-reader.logs :as log]
     [cognitect.transit :as json]
     [simple-reader.feed-file-io :as io]
     [simple-reader.http :as http]
@@ -22,15 +22,16 @@
 (def feed-md (atom {}))
 
 (defn get-subs-by-tags []
-  (reset! feed-md (io/load-feeds-md))
-  (let [tags-md   (io/load-tags-md)
-        tag-list  (sort-by #(-> % tags-md :position) (keys tags-md))
-        get-feeds-by-tag (fn [tag]
-                           (sort-by first (select [ATOM MAP-VALS (fn [v] (some #(= tag %) (:tags v))) :name] feed-md)))]
-    {:tag-order tag-list
-     :tag-metadata tags-md
-     :tag-content (into {} (map (fn [tag] {tag (get-feeds-by-tag tag)}) tag-list))
-     :subscriptions @feed-md}))
+  (try->empty
+    (reset! feed-md (io/load-feeds-md))
+    (let [tags-md   (io/load-tags-md)
+          tag-list  (sort-by #(-> % tags-md :position) (keys tags-md))
+          get-feeds-by-tag (fn [tag]
+                             (sort-by first (select [ATOM MAP-VALS (fn [v] (some #(= tag %) (:tags v))) :name] feed-md)))]
+      {:tag-order tag-list
+       :tag-metadata tags-md
+       :tag-content (into {} (map (fn [tag] {tag (get-feeds-by-tag tag)}) tag-list))
+       :subscriptions @feed-md})))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Process client requests:
@@ -39,9 +40,10 @@
   "read subscriptions"
   (h/write-json (get-subs-by-tags)))
 
-(defn get-feed [{feed :feed nb :nb :as fixme}]
+(defn get-feed [{feed :feed nb :nb}]
   "read feeds web client"
   (try->empty (let [metadata (io/load-feed-md feed)
+                    f-md     (@feed-md feed)
                     view     (or (:view-art-status metadata) "unread")
                     order    (or (:order metadata)  "oldest then saved")
                     articles (io/load-feed feed)
@@ -59,7 +61,7 @@
                                (let [unsaved (sort-by :date (filter #(not= "saved" (-> % :metadata :status)) articles))
                                      saved   (sort-by :date (filter #(= "saved" (-> % :metadata :status)) articles))]
                                  (concat unsaved saved)))]
-                (h/write-json {:feed-data {:title feed}
+                (h/write-json {:feed-data (select-keys f-md [:name :tags])
                                :metadata metadata
                                :articles articles}))))
 
@@ -86,28 +88,44 @@
 
 (defn update-feeds []
   "scrape subscriptions"
-  (let [process-article (fn [feed {cnt :count kept-articles :kept} article]
-                          (if (or (= article :done) (= article :error))
-                            {:count cnt :status article :kept kept-articles}
-                            (let [already-scraped (try->empty (io/load-article-scraped feed (:guid article))) ;; FIXME scrape-fn makes that decision
-                                  scraped         (scrape/scrape feed article already-scraped)]
-                              (go (try->empty (io/save-article feed article (<! scraped))))
-                              {:count (inc cnt) :kept (conj kept-articles (:guid article))})))
-        purge           (fn [feed {status :status to-keep :kept}]
-                          (when (= status :done)
-                            (let [all       (try->empty (io/load-feed feed))
-                                  read      (into #{} (select [ALL #(= "read" (-> % :metadata :status)) :guid] all))
-                                  out-dated (set/difference read to-keep)]
-                              (map #(try->empty (io/rm-article feed %)) out-dated))))]
-    (println "core:" (.toLocaleTimeString (new js/Date)) "starting update feeds")
-    (doseq [[k {link :url feed :name www-link :www-link :as fmd}] @feed-md
-            :let [[feed-meta articles] (fr/read link)]]
+  (let [timestamp       (new js/Date)
+
+        process-article (fn [feed {cnt :count kept-articles :kept} article]
+                          (let [already-scraped   (try->empty (io/load-article-scraped feed (:guid article))) ;; FIXME scrape-fn makes that decision
+                                [scraped sc-logs] (scrape/scrape feed article already-scraped)]
+                            (a/pipeline 1 log/logs (map #(merge % {:timestamp timestamp :feed feed})) sc-logs false)
+                            (go (try->empty (io/save-article feed article (<! scraped))))
+                            {:count (inc cnt) :kept (conj kept-articles (:guid article))}))
+
+        process-logs    (fn [feed status {new-status :level :as entry}]
+                          (let [s (if (or (= :error status) (= :error new-status)) :error :info)]
+                            (log/raw (merge {:feed feed :timestamp timestamp} entry))
+                            s))
+
+        purge           (fn [feed to-keep]
+                          (let [all       (try->empty (io/load-feed feed))
+                                read      (into #{} (select [ALL #(= "read" (-> % :metadata :status)) :guid] all))
+                                out-dated (set/difference read to-keep)]
+                            (map #(try->empty (io/rm-article feed %)) out-dated)))]
+
+    (println "\ncore:" (.toLocaleTimeString timestamp) "starting update feeds")
+
+    (doseq [[k {link :url type :type feed :name www-link :www-link :as fmd}] @feed-md
+            :when (= type :rss)
+            :let [[feed-meta articles feed-logs] (fr/read link)]]
+
       (go (let [new-link (:link (<! feed-meta))]
             (when (not= new-link www-link)
               (try->empty (io/save-feed-fmd feed (merge (dissoc fmd :unread-count :saved-count) {:www-link new-link}))))))
-      (go (let [res       (<! (a/reduce (partial process-article feed) {:kept #{} :count 0} articles))
-                purged    (purge feed res)]
-            (println "core:" (-> res :status name (str ":")) (:count res) "articles:" feed "-- purged:" (count purged)))))))
+
+      (go (let [log-reduced (a/reduce (partial process-logs feed) :info feed-logs)
+                art-reduced (a/reduce (partial process-article feed) {:kept #{} :count 0} articles)
+                {cnt :count kept :kept} (<! art-reduced)
+                status                  (<! log-reduced)
+                purged                  (if (= :info status)
+                                          (count (purge feed kept))
+                                          0)]
+            (log/feed-msg timestamp :core feed status (print-str cnt "articles -- purged:" purged)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:
@@ -124,7 +142,7 @@
         subs-req    (chan)
         subs-ans    (chan)]
 
-    (get-subs-by-tags)
+    (log/init)
 
     ;; init http
     (http/init feed-req feed-ans
@@ -140,9 +158,9 @@
     (a/pipeline 1 tag-md-ans (map change-tag-md) tag-md-req)
 
     (comment (go (while true
-                   ;(update-feeds)
-                   (try->empty (let [CP (node/require "child_process")]
-                                 (.execSync CP "tar -xavf feeds-demo.tgz -C ~/")))
-                   (<! (timeout (* 1000 60 15))))))))
+                   (get-subs-by-tags)
+                   (update-feeds)
+                   (<! (timeout (* 1000 60 60))))))))
+
 
 (set! *main-cli-fn* -main)

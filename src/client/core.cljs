@@ -25,7 +25,7 @@
 (defonce subscriptions-state (atom {}))
 (defonce tags-state (atom {}))
 (defonce tags-metadata (atom {}))
-(defonce feed-state (atom {:feed-data {:title "Loading..."}}))
+(defonce feed-state (atom {:feed-data {:name "Loading..."}}))
 (defonce article-metadata (atom {}))
 (defonce search-state (atom {:visible false}))
 (def HISTORY (History.))
@@ -56,6 +56,7 @@
         (reset! tags-metadata t-md))))
 
 (defn request-feed [title]
+  (set! (-> js/document (.getElementById "feed-page-wrapper") .-style .-opacity) 0) ;; fixme: it's sad this has to be here.
   (go (let [response    (<! (http/get (str "/f/" (js/encodeURIComponent title) "/42")))
             response    (h/read-json (:body response))]
         (reset! feed-state (init-feed-metadata response)))))
@@ -80,7 +81,7 @@
 
 (defn change-article-status-md [new-state & [gguid]]
   (let [guid          (or gguid (-> @article-metadata :selected :guid))
-        feed          (-> @feed-state :feed-data :title)
+        feed          (-> @feed-state :feed-data :name)
         cur-state     (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
         cur-state     (or cur-state "unread")
         new-state     (cond (and gguid (not= cur-state "saved"))                  "read" ;; hackish, this is for auto-mark-read on article change
@@ -100,6 +101,8 @@
                                subscriptions-state))))
       (go :nothing-was-done))))
 
+(defn change-feed-page [feed]
+  (.setToken HISTORY (str "/feed/" (js/encodeURIComponent feed))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; interaction:
 
@@ -127,12 +130,31 @@
           (change-article-status-md "read" guid))
       (go :nothing-was-done))))
 
+(defn change-feed [direction]
+  (let [cur-f     (-> @feed-state :feed-data :name)
+        tag       (-> @feed-state :feed-data :tags first) ;; fixme tags should become unique, that was a stupid idea.
+        tc        ((-> @tags-state :tag-content) tag)
+        sub-state @subscriptions-state
+        unread?   #(let [md @(sub-state %)]
+                     (or (= % cur-f) (-> md :saved-count pos?) (-> md :unread-count pos?)))
+        search    (fn [p [f & fs]]
+                    (if (= f cur-f)
+                      (if (= direction 1)
+                        (first fs)
+                        p)
+                      (if fs
+                        (recur f fs)
+                        nil)))
+        res       (->> tc (filter unread?) (search nil))]
+    (when res
+      (change-feed-page res))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; subscriptions!
 
 (rum/defc mk-sub < rum/reactive
   [feed show-all]
-  (let [selected-feed (-> feed-state rum/react :feed-data :title)
+  (let [selected-feed (-> feed-state rum/react :feed-data :name)
         sub-md        (rum/react (@subscriptions-state feed))
         unread        (:unread-count sub-md)
         saved         (:saved-count sub-md)
@@ -141,7 +163,7 @@
                         :div.subscription.selected
                         :div.subscription)]
     (when (or show-all (or (> unread 0) (> saved 0)))
-      [div ;{:on-click #(request-feed feed)}
+      [div {:on-click #(change-feed-page feed)}
        [:div.sub-title [a {:href (str "#/feed/" (js/encodeURIComponent feed))} feed]]
        [:div.sub-count.small unread]])))
 
@@ -196,13 +218,13 @@
    {title :title date :pretty-date desc :description scraped :scraped link :link id :guid}]
   (let [a-md     (@article-metadata id)
         {read-status :status visible? :visible?} (rum/react a-md)
-        [art-div-style art-read-status] (condp = read-status
-                                          "saved" [:div.article.saved "saved"]
-                                          "read"  [:div.article.read ""]
-                                          [:div.article "unread"])]
-    [art-div-style {:tab-index -1 :style {:outline 0}
-                    :on-click (when-not visible? #(change-article 0 id))}
-     [:a.title {:href link :target "_blank"} title]
+        [a-style art-read-status] (condp = read-status
+                                    "saved" [:a.title.saved "saved"]
+                                    "read"  [:a.title.read ""]
+                                    [:a.title "unread"])]
+    [:div.article {:tab-index -1 :style {:outline 0}
+                   :on-click (when-not visible? #(change-article 0 id))}
+     [a-style {:href link :target "_blank"} title]
      [:br]
      [:div.article-info.small [:div.date date] [:div.artical-satus art-read-status]]
      [:div.content {:style {:display (if visible? "" "none")}}
@@ -241,13 +263,15 @@
 (rum/defcs mk-feed < rum/reactive
                      {:did-update (fn [state]
                                     "focus on feed change"
-                                    (let [feed-node (.getElementById js/document "feed-content")]
+                                    (let [feed-node (.getElementById js/document "feed-content")
+                                          feed-wrapper (.getElementById js/document "feed-page-wrapper")]
                                       (.focus feed-node)
                                       (set! (.-scrollTop feed-node) 0)
+                                      (set! (-> feed-wrapper .-style .-opacity) 1)
                                       state))}
   [state]
   (let [fstate      (rum/react feed-state)
-        ftitle      (-> fstate :feed-data :title)
+        ftitle      (-> fstate :feed-data :name)
         articles    (:articles fstate)]
     [:div#feed-page-wrapper
      (mk-feed-title ftitle)
@@ -264,7 +288,7 @@
 
 (defn select-search-feed []
   (when-let [n    (:nth @search-state)]
-    (.setToken HISTORY (str "/feed/" (js/encodeURIComponent (nth (:results @search-state) n)))))
+    (change-feed-page (nth (:results @search-state) n)))
   (reset! search-state {:visible false}))
 
 (defn search [text]
@@ -287,7 +311,8 @@
                                      (let [comp     (:rum/react-component state)
                                            dom-node (js/ReactDOM.findDOMNode comp)]
                                        (when dom-node ;; not present when search closes
-                                         (-> dom-node .-firstChild .-firstChild .focus))
+                                         (-> dom-node .-firstChild .-firstChild .focus)
+                                         (set! (-> dom-node .-style .-opacity) 1))
                                        state))}
   [state]
   (let [s-state   (rum/react search-state)
@@ -330,6 +355,8 @@
               character (.fromCharCode js/String (.-charCode key-event))]
           (when-not (:visible @search-state) ;; FIXME I hate myself.
             (condp = character
+              "J" (change-feed 1)
+              "K" (change-feed -1)
               "j" (<! (change-article 1))
               "k" (<! (change-article -1))
               "m" (<! (change-article-status-md "read"))
@@ -338,7 +365,7 @@
               "r" (do (request-subscriptions)
                       (request-feed (select-one [ATOM :feed-data :title] feed-state)))
               "R" (do (request-subscriptions)
-                      (request-feed (select-one [ATOM :feed-data :title] feed-state)))
+                      (request-feed (select-one [ATOM :feed-data :name] feed-state)))
               "v" (do (let [guid (select-one [ATOM :selected :guid] article-metadata)
                             link (select-one [ATOM :articles ALL #(= guid (:guid %)) :link] feed-state)] ;; specter is awesome, my state structure isn't.
                         (.open js/window link))) ;; FIXME: for this to work in chrome (tab instead of pop up), we'd need to .open in the listen callback, which is annoying.

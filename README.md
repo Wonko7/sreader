@@ -23,6 +23,9 @@ In this demo version article status is reset each time you change feeds, or refr
 
 ### Keyboard navigation:
 
+- J: next unread feed (in the same tag group)
+- K: previous unread feed (ditto)
+- b: open feed search, type the name of a feed, once you find it hit enter. Use up and down arrows to navigate through search results.
 - j: next article
 - k: previous article (takes you to the last one if no articles are opened)
 - m: toggle mark as (un)read
@@ -33,7 +36,10 @@ In this demo version article status is reset each time you change feeds, or refr
 - R: refresh all feeds
 - v: open article in new tab
 - f: toggle fullscreen
+<<<<<<< HEAD
 - b: open feed search, type the name of a feed (try "gua" to select "The Guardian"), once you find it hit enter. Use up and down arrows to navigate through search results
+=======
+>>>>>>> master
 
 ## Source
 
