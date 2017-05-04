@@ -116,8 +116,12 @@
                          (! :.date (flex-child :auto))
                          (! :.article-status [(flex-child :auto)
                                               (margin {:l "1em"})]))
+                      (! :.content :.scraped {}
+                         (! :img {:max-width "100%"
+                                  :display :block
+                                  :width :auto
+                                  :height :auto}))
                       (! :.scraped {:max-width "100%"}
-                         (! :img {:max-width "100%"})
                          (! :.video-wrapper [(padding {:b "56%"})
                                              {:position :relative
                                               :width "100%"

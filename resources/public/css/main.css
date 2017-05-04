@@ -169,11 +169,18 @@ body #page #feed-anchor #feed-page-wrapper #feed-content .article .article-info 
   margin: 0 0 0 1em;
 }
 
-body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped {
-  max-width: 100%;
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content, body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped {
+
 }
 
-body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped img {
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .content img, body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped img {
+  max-width: 100%;
+  display: block;
+  width: auto;
+  height: auto;
+}
+
+body #page #feed-anchor #feed-page-wrapper #feed-content .article .scraped {
   max-width: 100%;
 }
 

@@ -158,9 +158,11 @@
     (a/pipeline 1 feed-md-ans (map change-feed-md) feed-md-req)
     (a/pipeline 1 tag-md-ans (map change-tag-md) tag-md-req)
 
+    (go (println (<! (scrape/scrape "les_joies_du_code();" {:content "lol" :link "http://lesjoiesducode.fr/post/129765994525"} nil (chan)))))
+
     (go (while true
           (get-subs-by-tags)
-          (update-feeds)
+          (comment (update-feeds))
           (<! (timeout (* 1000 60 60)))))))
 
 
