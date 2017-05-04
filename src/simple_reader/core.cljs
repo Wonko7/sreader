@@ -94,7 +94,7 @@
                           (let [already-scraped (try->empty (io/load-article-scraped feed (:guid article))) ;; FIXME scrape-fn makes that decision
                                 logs            (chan)
                                 scraped         (scrape/scrape feed article already-scraped logs)]
-                            (a/pipeline 1 log/logs (map #(merge % {:timestamp timeout :feed feed})) logs false)
+                            (a/pipeline 1 log/logs (map #(merge % {:timestamp timestamp :feed feed})) logs false)
                             (go (try->empty (io/save-article feed article (<! scraped))))
                             {:count (inc cnt) :kept (conj kept-articles (:guid article))}))
 

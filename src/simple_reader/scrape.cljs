@@ -26,7 +26,7 @@
     (.on req "error" #(log-and-close! :error (str "scrape: error requesting" link %)))
     (.on req "response" (fn [response]
                           (if (not= 200 (.-statusCode response))
-                            (log-and-close! :error (str "scrape: HTTP: request: bad status code:" (.-statusCode response) "on:" link))
+                            (log-and-close! :error (str "scrape: HTTP: request: bad status code: " (.-statusCode response) " on: " link))
                             (.on response "data" #(go (>! result-chan %))))))
     (.on req "end" #(close-all!))
 
@@ -69,7 +69,6 @@
                      (let [link (:link rss-entry)
                            link (str/replace link #"rss$" "")
                            scraped (simple-scrape "div.ArticleEntry" {:link link} logs)]
-                       (log logs :info (str "LWN: got:" scraped))
                        scraped)
                      (go {}))))
     :overwrite true}
@@ -91,10 +90,9 @@
    })
 
 (defn scrape [feed article already-scraped logs]
-  (let [logs (chan)]
-    (go (let [scrape-md (-> feed scrape-data)]
-           (if (or (and (:scraped-data already-scraped) (not (:overwrite scrape-md))) ;; already scraped
-                   (nil? scrape-md)) ;; feed has no scraping to do
-             {}
-             (let [scraped-data (<! ((:scrape-fn scrape-md) article logs))]
-               {:scraped-data scraped-data}))))))
+  (go (let [scrape-md (-> feed scrape-data)]
+        (if (or (and (:scraped-data already-scraped) (not (:overwrite scrape-md))) ;; already scraped
+                (nil? scrape-md)) ;; feed has no scraping to do
+          {}
+          (let [scraped-data (<! ((:scrape-fn scrape-md) article logs))]
+            {:scraped-data scraped-data})))))
