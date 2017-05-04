@@ -13,28 +13,27 @@
   (go (>! logs {:level level :log msg :system :scrape})))
 
 (defn get-link [link logs]
-  (let [req   ((node/require "request") link (cljs/clj->js {:timeout 50000 :pool false :encoding :utf8}))
-        result-chan (chan)
-        close-all! #(go (a/close! result-chan)
-                        (a/close! logs))
-        log-and-close! #(go (>! logs {:level %1 :log %2 :system :scrape})
-                            (close-all!))]
+  (let [axios           (node/require "axios")
+        result-chan     (chan)
+        close-all!      #(go (a/close! result-chan)
+                             (a/close! logs))
+        log-and-close!  #(go (>! logs {:level %1 :log %2 :system :scrape})
+                             (close-all!))]
 
-    (.setMaxListeners req 50)
-    (.setHeader req "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36")
-    (.setHeader req "accept" "text/html,application/xhtml+xml")
-    (.on req "error" #(log-and-close! :error (print-str "error requesting:" link %)))
-    (.on req "response" (fn [response]
-                          (if (not= 200 (.-statusCode response))
-                            (log-and-close! :error (print-str "HTTP: request: bad status code: " (.-statusCode response) (.-statusMessage response) "on:" link))
-                            (.on response "data" #(go (>! result-chan %))))))
-    (.on req "end" #(close-all!))
+    (-> axios (.request (cljs/clj->js {:url link :timeout 50000}))
+        (.then (fn [response]
+                 (if (not= 200 (.-status response))
+                   (log-and-close! :error (print-str "HTTP: request: bad status code: " (.-status response) (.-statusText response) "on:" link))
+                   (go (>! result-chan (.-data response))
+                       (close-all!)))))
+        (.catch #(log-and-close! :error (print-str "error requesting:" link (.-message %)))))
 
-    (go (apply str (cljs/clj->js (<! (a/reduce conj [] result-chan)))))))
+    result-chan))
 
 (defn simple-scrape [selector rss-entry logs]
   (go (if (:link rss-entry)
-        (let [$       (.load (node/require "cheerio") (<! (get-link (:link rss-entry) logs)))
+        (let [html    (<! (get-link (:link rss-entry) logs))
+              $       (.load (node/require "cheerio") (or html ""))
               scraped (.html $ selector)]
           (if-not scraped
             (do (log logs :warning (print-str "scraping returned nothing" :url (:link rss-entry)))
