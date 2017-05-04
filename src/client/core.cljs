@@ -363,7 +363,7 @@
               "s" (<! (change-article-status-md "saved"))
               "b" (setval [ATOM] {:visible true :subscriptions (sort (select [ATOM ALL FIRST] subscriptions-state))} search-state)
               "r" (do (request-subscriptions)
-                      (request-feed (select-one [ATOM :feed-data :title] feed-state)))
+                      (request-feed (select-one [ATOM :feed-data :name] feed-state)))
               "R" (do (request-subscriptions)
                       (request-feed (select-one [ATOM :feed-data :name] feed-state)))
               "v" (do (let [guid (select-one [ATOM :selected :guid] article-metadata)
