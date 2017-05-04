@@ -91,10 +91,9 @@
   (let [timestamp       (new js/Date)
 
         process-article (fn [feed {cnt :count kept-articles :kept} article]
-                          (let [already-scraped (try->empty (io/load-article-scraped feed (:guid article))) ;; FIXME scrape-fn makes that decision
-                                logs            (chan)
-                                scraped         (scrape/scrape feed article already-scraped logs)]
-                            (a/pipeline 1 log/logs (map #(merge % {:timestamp timestamp :feed feed})) logs false)
+                          (let [already-scraped   (try->empty (io/load-article-scraped feed (:guid article))) ;; FIXME scrape-fn makes that decision
+                                [scraped sc-logs] (scrape/scrape feed article already-scraped)]
+                            (a/pipeline 1 log/logs (map #(merge % {:timestamp timestamp :feed feed})) sc-logs false)
                             (go (try->empty (io/save-article feed article (<! scraped))))
                             {:count (inc cnt) :kept (conj kept-articles (:guid article))}))
 

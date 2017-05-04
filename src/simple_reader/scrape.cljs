@@ -85,10 +85,11 @@
    {:scrape-fn mk-youtube-embedded}
    })
 
-(defn scrape [feed article already-scraped logs]
-  (go (let [scrape-md (-> feed scrape-data)]
+(defn scrape [feed article already-scraped]
+  (let [logs (chan)]
+    [(go (let [scrape-md (-> feed scrape-data)]
         (if (or (and (:scraped-data already-scraped) (not (:overwrite scrape-md))) ;; already scraped
                 (nil? scrape-md)) ;; feed has no scraping to do
           {}
-          (let [scraped-data (<! ((:scrape-fn scrape-md) article logs))]
-            {:scraped-data scraped-data})))))
+          {:scraped-data (<! ((:scrape-fn scrape-md) article logs))})))
+     logs]))
