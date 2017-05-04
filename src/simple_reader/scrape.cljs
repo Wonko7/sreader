@@ -20,12 +20,9 @@
         log-and-close!  #(go (>! logs {:level %1 :log %2 :system :scrape})
                              (close-all!))]
 
-    (-> axios (.request (cljs/clj->js {:url link :timeout 50000}))
-        (.then (fn [response]
-                 (if (not= 200 (.-status response))
-                   (log-and-close! :error (print-str "HTTP: request: bad status code: " (.-status response) (.-statusText response) "on:" link))
-                   (go (>! result-chan (.-data response))
-                       (close-all!)))))
+    (-> axios (.request (cljs/clj->js {:url link :timeout 60000}))
+        (.then  #(go (>! result-chan (.-data %))
+                     (close-all!)))
         (.catch #(log-and-close! :error (print-str "error requesting:" link (.-message %)))))
 
     result-chan))

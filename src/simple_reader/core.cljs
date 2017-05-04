@@ -112,7 +112,7 @@
     (println "\ncore:" (.toLocaleTimeString timestamp) "starting update feeds")
 
     (doseq [[k {link :url type :type feed :name www-link :www-link :as fmd}] @feed-md
-            :when (and (or (= feed "LWN.net") (= feed "NASA Image of the Day")) (= type :rss))
+            :when (= type :rss)
             :let [[feed-meta articles feed-logs] (fr/read link)]]
 
       (go (let [new-link (:link (<! feed-meta))]
@@ -126,7 +126,7 @@
                 purged                  (if (= :info status)
                                           (count (purge feed kept))
                                           0)]
-            (log/feed-msg timestamp :core feed status (print-str cnt "articles" "-- purged:" purged)))))))
+            (log/feed-msg timestamp :core feed status (print-str cnt "articles -- purged:" purged)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; app:

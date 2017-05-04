@@ -84,22 +84,14 @@
                           (go (when msg 
                                 (<! (log level msg)))
                               (close-all!)))
-        req             ((node/require "request") feed (cljs/clj->js {:timeout 60000 :pool false}))
+        axios           (node/require "axios")
         fp              (node/require "feedparser")
         fp              (new fp)]
-    (.setMaxListeners req 50)
-    (.setHeader req "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36")
-    (.setHeader req "accept" "text/html,application/xhtml+xml")
-    (.on req "error" #(log-and-close! :error (print-str "error requesting" feed %)))
-    (.on req "response" (fn [result]
-                          (if (not= 200 (.-statusCode result))
-                            (log-and-close! :error (print-str "HTTP: request: bad status code:" (.-statusCode result) "on:" feed))
-                            (let [headers (h/to-clj (.-headers result))
-                                  encoding (:content-encoding headers)
-                                  charset (:content-type headers)
-                                  res (maybe-decompress result encoding feed log) ;;FIXME feed only for debug.
-                                  res (maybe-translate res charset feed log)]
-                              (.pipe res fp)))))
+
+    (-> axios (.request (cljs/clj->js {:url feed :timeout 60000 :responseType :stream}))
+        (.then  #(-> % .-data (.pipe fp)))
+        (.catch #(log-and-close! :error (print-str "error requesting:" feed (.-message %)))))
+
     (.on fp "meta" #(go (>! feed-md (h/to-clj %))))
     (.on fp "readable" #(this-as this
                                  (go-loop [post (.read this)]
