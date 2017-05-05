@@ -144,7 +144,6 @@
 
     (log/init)
 
-    ;; init http
     (http/init feed-req feed-ans
                subs-req subs-ans
                art-md-req art-md-ans

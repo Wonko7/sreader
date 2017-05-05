@@ -137,12 +137,8 @@
                      (or (= % cur-f) (-> md :saved-count pos?) (-> md :unread-count pos?)))
         search    (fn [p [f & fs]]
                     (if (= f cur-f)
-                      (if (= direction 1)
-                        (first fs)
-                        p)
-                      (if fs
-                        (recur f fs)
-                        nil)))
+                      (if (= direction 1) (first fs) p)
+                      (if fs (recur f fs) nil)))
         res       (->> tc (filter unread?) (search nil))]
     (when res
       (change-feed-page res))))
