@@ -153,7 +153,7 @@
           cur-md (read-article-md feed-id art-id)]
       (write-json-file art-path (dissoc article :metadata))
       (write-article-md feed-id art-id (merge def-md cur-md new-md))
-      (when-not (empty? (:scraped-data scraped))
+      (when-not (empty? scraped)
         (write-article-scraped feed-id art-id scraped)))))
 
 (defn load-feed [feed]

@@ -1,4 +1,5 @@
-(ns utils.macros)
+(ns utils.macros
+  (:require [cljs.analyzer :as analyzer]))
 ;; see https://github.com/swannodette/swannodette.github.com
 
 (defmacro <? [expr]
@@ -76,5 +77,6 @@
   "returns {} on exception after printing error."
   `(try
      ~@body
-     (catch js/Object e# (do (println (str ~cljs.analyzer/*cljs-file* ":" ~(:line (meta &form))) e#)
+     (catch js/Object e# (do ;(println (str ~cljs.analyzer/*cljs-file* ": " ~(:line (meta &form))) e#)
+                             (simple-reader.logs/msg (new js/Date) :file-io :error (str ~cljs.analyzer/*cljs-file* ":" ~(:line (meta &form)) " " e#))
                              {}))))

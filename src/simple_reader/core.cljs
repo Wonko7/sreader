@@ -112,15 +112,15 @@
 
     (doseq [[k {link :url type :type feed :name www-link :www-link :as fmd}] @feed-md
             :when (= type :rss)
-            :let [[feed-meta articles feed-logs] (fr/read link)]]
+            :let [[feed-meta articles feed-logs] (fr/read link)
+                  log-reduced (a/reduce (partial process-logs feed) :info feed-logs)
+                  art-reduced (a/reduce (partial process-article feed) {:kept #{} :count 0} articles)]]
 
       (go (let [new-link (:link (<! feed-meta))]
             (when (not= new-link www-link)
               (try->empty (io/save-feed-fmd feed (merge (dissoc fmd :unread-count :saved-count) {:www-link new-link}))))))
 
-      (go (let [log-reduced (a/reduce (partial process-logs feed) :info feed-logs)
-                art-reduced (a/reduce (partial process-article feed) {:kept #{} :count 0} articles)
-                {cnt :count kept :kept} (<! art-reduced)
+      (go (let [{cnt :count kept :kept} (<! art-reduced)
                 status                  (<! log-reduced)
                 purged                  (if (= :info status)
                                           (count (purge feed kept))

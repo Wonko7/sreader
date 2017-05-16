@@ -36,9 +36,8 @@
                                                       (mk-div :sr-log-message l)))))))
         mk-descr  (fn [ts status]
                     (apply str (for [[feed data] (sort-by first (logs ts))
-                                     data (select [(must ts) (must feed) (must status)] logs) ]
-                                 (mk-entry feed status data)
-                                 )))
+                                     data (select [(must ts) (must feed) (must status)] logs)]
+                                 (mk-entry feed status data))))
         hum-date  (node/require "human-date")
         tss       (sort (keys logs))
         statuses  [:info :warning :error]]

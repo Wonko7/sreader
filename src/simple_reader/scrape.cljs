@@ -27,23 +27,24 @@
 
     result-chan))
 
-(defn simple-scrape [selector rss-entry logs]
+(defn simple-scrape [selector rss-entry logs & [data-type]]
   (go (if (:link rss-entry)
-        (let [html    (<! (get-link (:link rss-entry) logs))
-              $       (.load (node/require "cheerio") (or html ""))
-              scraped (.html $ selector)]
+        (let [html      (<! (get-link (:link rss-entry) logs))
+              $         (.load (node/require "cheerio") (or html ""))
+              scraped   (.html $ selector)
+              data-type (or data-type :scraped-data)]
           (if-not scraped
             (do (log logs :warning (print-str "scraping returned nothing" :url (:link rss-entry)))
                 {})
-            scraped))
+            {data-type scraped}))
         (do (log logs :warning (print-str "error: no link in:" rss-entry))
             {}))))
 
 (defn mk-youtube-embedded [{link :link} logs]
   (let [embed-link (str/replace link #"/watch\?v=" "/embed/")]
-    (go (str "<div class=\"video-wrapper\">" ;; if we end up doing more of this we'll need a templating lib.
-             "<iframe src=\"" embed-link "\"> </iframe>"
-             "</div>"))))
+    (go {:scraped-data (str "<div class=\"video-wrapper\">" ;; if we end up doing more of this we'll need a templating lib.
+                            "<iframe src=\"" embed-link "\"> </iframe>"
+                            "</div>")})))
 
 (def scrape-data ;; should be external to main app, in config somewhere, but I'm the only user so meh for now.
   {"Explosm.net"
@@ -58,6 +59,8 @@
    {:scrape-fn (partial simple-scrape "div.blog-post-content img")}
    "the_coding_love();"
    {:scrape-fn (partial simple-scrape "div#post1 img")}
+   "Saturday Morning Breakfast Cereal"
+   {:scrape-fn #(simple-scrape "div#aftercomic img" %1 %2 :scraped-data-bottom)}
    "LWN.net"
    {:scrape-fn (fn [rss-entry logs]
                  (let [title (:title rss-entry)]
@@ -76,20 +79,18 @@
                        (if (nil? img)
                          (do (log logs :warning (str "scraping returned nothing" :url link))
                              {})
-                         (str "<img src=\"" img "\">")))))}
+                         {:scraped-data (str "<img src=\"" img "\">")}))))}
    "Last Week Tonight"
    {:scrape-fn mk-youtube-embedded}
    "Explosm Shorts"
    {:scrape-fn mk-youtube-embedded}
    "Cyriak"
-   {:scrape-fn mk-youtube-embedded}
-   })
+   {:scrape-fn mk-youtube-embedded}})
 
 (defn scrape [feed article already-scraped]
-  (let [logs (chan)]
-    [(go (let [scrape-md (-> feed scrape-data)]
-        (if (or (and (:scraped-data already-scraped) (not (:overwrite scrape-md))) ;; already scraped
-                (nil? scrape-md)) ;; feed has no scraping to do
-          {}
-          {:scraped-data (<! ((:scrape-fn scrape-md) article logs))})))
-     logs]))
+  (let [logs      (chan)
+        scrape-md (-> feed scrape-data)]
+    (if (or (and (:scraped-data already-scraped) (not (:overwrite scrape-md))) ;; already scraped
+            (nil? scrape-md)) ;; feed has no scraping to do
+      [(go {}) logs]
+      [((:scrape-fn scrape-md) article logs) logs])))

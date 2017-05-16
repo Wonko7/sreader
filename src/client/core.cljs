@@ -206,7 +206,7 @@
                                                art-node   (js/ReactDOM.findDOMNode comp)
                                                feed-node  (.getElementById js/document "feed-content")]
                                            (.focus art-node)
-                                           (set! (.-scrollTop feed-node) (-  (.-offsetTop art-node) (.-offsetTop feed-node)))))
+                                           (set! (.-scrollTop feed-node) (- (.-offsetTop art-node) (.-offsetTop feed-node)))))
                                        state)}
   [state
    {title :title date :pretty-date desc :description scraped :scraped link :link id :guid}]
@@ -222,8 +222,9 @@
      [:br]
      [:div.article-info.small [:div.date date] [:div.artical-satus art-read-status]]
      [:div.content {:style {:display (if visible? "" "none")}}
-      [:div.scraped {:dangerouslySetInnerHTML {:__html (:scraped-data scraped)}}] ;; FIXME might need more flexibility?
-      [:div.description {:dangerouslySetInnerHTML {:__html desc}}]]]))
+      [:div.scraped {:dangerouslySetInnerHTML {:__html (:scraped-data scraped)}}]
+      [:div.description {:dangerouslySetInnerHTML {:__html desc}}]
+      [:div.scraped {:dangerouslySetInnerHTML {:__html (:scraped-data-bottom scraped)}}]]]))
 
 (rum/defc mk-feed-title < rum/reactive
   [ftitle]
