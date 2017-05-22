@@ -156,7 +156,7 @@
         div           (if (= selected-feed feed)
                         :div.subscription.selected
                         :div.subscription)]
-    (when (or show-all (or (> unread 0) (> saved 0)))
+    (when (or show-all (> unread 0) (> saved 0))
       [div {:on-click #(change-feed-page feed)}
        [:div.sub-title [a {:href (str "#/feed/" (js/encodeURIComponent feed))} feed]]
        [:div.sub-count.small unread]])))

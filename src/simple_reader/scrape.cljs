@@ -61,25 +61,34 @@
    {:scrape-fn (partial simple-scrape "div#post1 img")}
    "Saturday Morning Breakfast Cereal"
    {:scrape-fn #(simple-scrape "div#aftercomic img" %1 %2 :scraped-data-bottom)}
-   "LWN.net"
+   "LWN.net -- disabled"
    {:scrape-fn (fn [rss-entry logs]
                  (let [title (:title rss-entry)]
                    (if (re-find #"^\[\$\]" title)
                      (let [link (:link rss-entry)
-                           link (str/replace link #"rss$" "")
+                           ; link (str/replace link #"rss$" "")
                            scraped (simple-scrape "div.ArticleEntry" {:link link} logs)]
                        scraped)
                      (go {}))))
     :overwrite true}
    "NASA Image of the Day"
    {:scrape-fn (fn [{link :link} logs]
-                 (go (let [$ (.load (node/require "cheerio") (<! (get-link link logs)))
+                 (go (let [$   (.load (node/require "cheerio") (<! (get-link link logs)))
                            img (-> ($ "meta[property='og:image']")
                                    (.attr "content"))]
                        (if (nil? img)
                          (do (log logs :warning (str "scraping returned nothing" :url link))
                              {})
                          {:scraped-data (str "<img src=\"" img "\">")}))))}
+   "xkcd comic"
+   {:scrape-fn (fn [{html :description :as entry} logs]
+                 (go (let [$   (.load (node/require "cheerio") html)
+                           alt (-> ($ "img")
+                                   (.attr "alt"))]
+                       (if (nil? alt)
+                         (do (log logs :warning (str "could not find img alt text" :url (:url entry)))
+                             {})
+                         {:scraped-data-bottom alt}))))}
    "Last Week Tonight"
    {:scrape-fn mk-youtube-embedded}
    "Explosm Shorts"
