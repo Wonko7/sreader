@@ -65,11 +65,13 @@
 
 (defn extract-article [article-in]
   "read articles one by one, extract things we want"
-  (let [hum-date (node/require "human-date")
-        article  (h/to-clj article-in)
-        result   (select-keys article [:title :author :description :link :guid])]
+  (let [hum-date  (node/require "human-date")
+        article   (h/to-clj article-in)
+        media     (get-in article [:media:content (keyword "@")]) ;; media is wrapped in a :@ that seems useless to me
+        result    (select-keys article [:title :author :description :link :guid])]
     (merge result {:pretty-date   (.prettyPrint hum-date (:pubdate article))
-                   :date          (:pubdate article)})))
+                   :date          (:pubdate article)
+                   :media:content media})))
 
 (defn read [feed]
   "Will read each value from the given feed address and them to the returned channel"

@@ -24,6 +24,7 @@
   (go (>! logs thing)))
 
 (defn write-logs [logs]
+  ;; FIXME: sablono might work on node!
   (let [mk-div    (fn [class content & [extra]] ;; *sigh*
                     (str "<div class=\"" (name class) "\">" content (or extra "") "</div>"))
         mk-entry  (fn [feed status logs]

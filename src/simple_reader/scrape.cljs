@@ -42,6 +42,7 @@
 
 (defn mk-youtube-embedded [{link :link} logs]
   (let [embed-link (str/replace link #"/watch\?v=" "/embed/")]
+    ;; FIXME: sablono might work on node!
     (go {:scraped-data (str "<div class=\"video-wrapper\">" ;; if we end up doing more of this we'll need a templating lib.
                             "<iframe src=\"" embed-link "\"> </iframe>"
                             "</div>")})))

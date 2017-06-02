@@ -209,22 +209,34 @@
                                            (set! (.-scrollTop feed-node) (- (.-offsetTop art-node) (.-offsetTop feed-node)))))
                                        state)}
   [state
-   {title :title date :pretty-date desc :description scraped :scraped link :link id :guid}]
+   {title :title date :pretty-date desc :description scraped :scraped media :media:content link :link id :guid}]
   (let [a-md     (@article-metadata id)
         {read-status :status visible? :visible?} (rum/react a-md)
         [a-style art-read-status] (condp = read-status
                                     "saved" [:a.title.saved "saved"]
                                     "read"  [:a.title.read ""]
-                                    [:a.title "unread"])]
+                                    [:a.title "unread"])
+        set-inner-html            (fn [html]
+                                    {:dangerouslySetInnerHTML {:__html html}})]
     [:div.article {:tab-index -1 :style {:outline 0}
                    :on-click (when-not visible? #(change-article 0 id))}
      [a-style {:href link :target "_blank"} title]
      [:br]
      [:div.article-info.small [:div.date date] [:div.artical-satus art-read-status]]
      [:div.content {:style {:display (if visible? "" "none")}}
-      [:div.scraped {:dangerouslySetInnerHTML {:__html (:scraped-data scraped)}}]
-      [:div.description {:dangerouslySetInnerHTML {:__html desc}}]
-      [:div.scraped {:dangerouslySetInnerHTML {:__html (:scraped-data-bottom scraped)}}]]]))
+      [:div.scraped     (set-inner-html (:scraped-data scraped))]
+      [:div.description (set-inner-html desc)]
+      [:div.scraped     (set-inner-html (:scraped-data-bottom scraped))]
+      (when media
+        (let [media-link (:url media)
+              medium     (:type media)
+              media-tag  (condp re-find medium
+                           #"image" [:img {:src media-link}]
+                           #"audio" [:audio {:controls true} [:source {:src media-link :type medium}]]
+                           #"video" [:video {:controls true} [:source {:src media-link :type medium}]]
+                           [])]
+          [:div media-tag [:br] [:a {:href media-link} media-link]])
+        )]]))
 
 (rum/defc mk-feed-title < rum/reactive
   [ftitle]
