@@ -90,6 +90,10 @@
                          (do (log logs :warning (str "could not find img alt text" :url (:url entry)))
                              {})
                          {:scraped-data-bottom alt}))))}
+   "Jam2go"
+   {:scrape-fn mk-youtube-embedded}
+   "Babish"
+   {:scrape-fn mk-youtube-embedded}
    "Last Week Tonight"
    {:scrape-fn mk-youtube-embedded}
    "Explosm Shorts"

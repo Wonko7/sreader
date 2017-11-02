@@ -229,7 +229,7 @@
       [:div.scraped     (set-inner-html (:scraped-data-bottom scraped))]
       (when media
         (let [media-link (:url media)
-              medium     (:type media)
+              medium     (or (:medium media) (:type media))
               media-tag  (condp re-find medium
                            #"image" [:img {:src media-link}]
                            #"audio" [:audio {:controls true :width "100%"} [:source {:src media-link :type medium}]]
