@@ -28,9 +28,9 @@
           tag-list  (sort-by #(-> % tags-md :position) (keys tags-md))
           get-feeds-by-tag (fn [tag]
                              (sort-by first (select [ATOM MAP-VALS (fn [v] (some #(= tag %) (:tags v))) :name] feed-md)))]
-      {:tag-order tag-list
-       :tag-metadata tags-md
-       :tag-content (into {} (map (fn [tag] {tag (get-feeds-by-tag tag)}) tag-list))
+      {:tag-order     tag-list
+       :tag-metadata  tags-md
+       :tag-content   (into {} (map (fn [tag] {tag (get-feeds-by-tag tag)}) tag-list))
        :subscriptions @feed-md})))
 
 
@@ -62,8 +62,8 @@
                                      saved   (sort-by :date (filter #(= "saved" (-> % :metadata :status)) articles))]
                                  (concat unsaved saved)))]
                 (h/write-json {:feed-data (select-keys f-md [:name :tags])
-                               :metadata metadata
-                               :articles articles}))))
+                               :metadata  metadata
+                               :articles  articles}))))
 
 (defn change-article-md [{{feed :feed article :article} :id new-md :metadata}]
   "handle article metadata changes"
@@ -79,7 +79,7 @@
                 (io/save-feed-md feed md)
                 md)))
 
-(defn change-tag-md [{{tag :tag} :id new-md :metadata} ]
+(defn change-tag-md [{{tag :tag} :id new-md :metadata}]
   "handle tag metadata changes:"
   (try->empty (let [cur-md  (io/load-tag-md tag)
                     md      (merge cur-md new-md)]
