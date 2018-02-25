@@ -3,7 +3,7 @@
             [rum.core :as rum]
             [cljs-http.client :as http]
             [cognitect.transit :as json]
-            [cljs.core.async :refer [chan <! >!] :as a]
+            [cljs.core.async :as a :refer [chan <! >!]]
             [com.rpl.specter :as s :refer [setval select-one select transform must if-path cond-path multi-transform multi-path filterer keypath pred submap terminal-val terminal srange ALL ATOM FIRST MAP-VALS]]
             [secretary.core :as secretary :refer-macros [defroute]]
             ;; me
@@ -11,8 +11,8 @@
             ;; goog
             [goog.events :as events]
             [goog.history.EventType :as EventType]
-            [goog.events :as events]
-            )
+            [goog.events :as events])
+            
   (:require-macros [cljs.core.async.macros :as m :refer [go-loop go]]
                    [utils.macros :refer [<? <?? go? go-try dprint]])
   (:import goog.History))
@@ -35,10 +35,10 @@
 
 (defn init-feed-metadata [feed-state]
   (let [feed-state (transform [:articles ALL :guid] js/encodeURIComponent feed-state)
-        articles (merge (:articles feed-state) {:selected nil})
-        md (into {} (map (fn [{id :guid md :metadata}]
-                           {id (atom (merge {:status "unread" :visible? false} md))})
-                         articles))]
+        articles   (merge (:articles feed-state) {:selected nil})
+        md         (into {} (map (fn [{id :guid md :metadata}]
+                                   {id (atom (merge {:status "unread" :visible? false} md))})
+                                 articles))]
     (reset! article-metadata md)
     feed-state))
 
@@ -78,19 +78,19 @@
         (transform [ATOM (keypath tag) ATOM] #(merge % new-md) tags-metadata))))
 
 (defn change-article-status-md [new-state & [gguid]]
-  (let [guid          (or gguid (-> @article-metadata :selected :guid))
-        feed          (-> @feed-state :feed-data :name)
-        cur-state     (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
-        cur-state     (or cur-state "unread")
-        new-state     (cond (and gguid (not= cur-state "saved"))                  "read" ;; hackish, this is for auto-mark-read on article change
-                            (and (= cur-state "unread") (= new-state "read"))     "read"
-                            (= cur-state new-state)                               "unread"
-                            :else                                                 "saved")
-        update-count  (fn [type cur-count]
-                        (condp = type
-                          new-state (inc cur-count)
-                          cur-state (dec cur-count)
-                          cur-count))]
+  (let [guid         (or gguid (-> @article-metadata :selected :guid))
+        feed         (-> @feed-state :feed-data :name)
+        cur-state    (select-one [ATOM (keypath guid) ATOM :status] article-metadata)
+        cur-state    (or cur-state "unread")
+        new-state    (cond (and gguid (not= cur-state "saved"))                  "read" ;; hackish, this is for auto-mark-read on article change
+                           (and (= cur-state "unread") (= new-state "read"))     "read"
+                           (= cur-state new-state)                               "unread"
+                           :else                                                 "saved")
+        update-count (fn [type cur-count]
+                       (condp = type
+                         new-state (inc cur-count)
+                         cur-state (dec cur-count)
+                         cur-count))]
     (if (and guid (not= new-state cur-state))
       (go (let [result-md (:status (<! (change-article-md feed guid {:status new-state})))]
             (when (= new-state result-md)
@@ -107,19 +107,19 @@
 (defn change-article [nb & [guid]]
   "If guid is given, nb is ignored, guid is selected.
   Otherwise next article is nb relative to current article."
-  (let [cur-nb          (-> @article-metadata :selected :number)
-        cur-guid        (-> @article-metadata :selected :guid)
-        cur-nb          (or cur-nb -1)
-        articles        (-> @feed-state :articles)
-        total           (count articles)
-        next-nb         (+ nb cur-nb)
-        next-nb         (cond (= next-nb -2)    (dec total)
-                              (< next-nb 0)     0
-                              (< next-nb total) next-nb
-                              :else             (dec total))
-        [guid next-nb]  (if guid
-                          [guid (count (take-while #(not= guid (:guid %)) articles))]
-                          [(:guid (nth articles next-nb)) next-nb])]
+  (let [cur-nb         (-> @article-metadata :selected :number)
+        cur-guid       (-> @article-metadata :selected :guid)
+        cur-nb         (or cur-nb -1)
+        articles       (-> @feed-state :articles)
+        total          (count articles)
+        next-nb        (+ nb cur-nb)
+        next-nb        (cond (= next-nb -2)    (dec total)
+                             (< next-nb 0)     0
+                             (< next-nb total) next-nb
+                             :else             (dec total))
+        [guid next-nb] (if guid
+                         [guid (count (take-while #(not= guid (:guid %)) articles))]
+                         [(:guid (nth articles next-nb)) next-nb])]
     (if (not= next-nb cur-nb)
       (do (multi-transform [ATOM (multi-path [:selected (terminal-val {:number next-nb :guid guid})]
                                              [(if-path (keypath cur-guid) (keypath cur-guid)) ATOM :visible? (terminal-val false)]
@@ -164,9 +164,9 @@
 (rum/defcs mk-tag < rum/reactive
                     (rum/local false ::show-all-read)
   [state tag feeds]
-  (let [tag-md    (rum/react (@tags-metadata tag))
-        v?        (:visible? tag-md)
-        show-all  (::show-all-read state)]
+  (let [tag-md   (rum/react (@tags-metadata tag))
+        v?       (:visible? tag-md)
+        show-all (::show-all-read state)]
     [:div.tag
      [:a {:on-click #(toggle-tag-md tag :visible?)
           :href "javascript:void(0)"} (str (if v? "▾ " "▸ ") tag)]
@@ -400,4 +400,4 @@
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
-)
+  )
